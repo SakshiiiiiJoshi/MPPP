@@ -91,12 +91,14 @@ function applyTheme(theme) {
 // Determine overall theme from entire dataset
 function deriveDatasetTheme(data) {
   const temps = mapData(data, r => r.temperature);
-  const precips = mapData(data, r => r.precipitation);
   const avgT = calcAvg(temps);
-  const maxP = calcMax(precips);
 
-  if (maxP > 8) return 'rainy';
-  if (avgT >= 30) return 'hot';
+  // If > 30% of days have precipitation > 5mm, classify as rainy dataset
+  const rainyDays = filterData(data, r => r.precipitation > 5).length;
+  const isMostlyRainy = (data.length > 0) && (rainyDays / data.length) > 0.3;
+
+  if (isMostlyRainy) return 'rainy';
+  if (avgT >= 28) return 'hot';
   if (avgT <= 18) return 'cold';
   return 'mild';
 }

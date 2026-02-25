@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Weather Data Analyzer</title>
-  <meta name="description" content="Interactive Weather Data Analyzer — pure functional analysis with dynamic weather themes." />
+  <meta name="description"
+    content="Interactive Weather Data Analyzer — pure functional analysis with dynamic weather themes." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     /* ========================================
@@ -22,7 +25,7 @@
       --glass-border: rgba(255, 255, 255, 0.12);
       --text-primary: #f0f6ff;
       --text-muted: rgba(240, 246, 255, 0.55);
-      --card-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       --transition: 0.75s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -65,7 +68,13 @@
     /* ========================================
        RESET & BASE
     ======================================== */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: 'Inter', sans-serif;
@@ -148,34 +157,223 @@
     }
 
     /* ========================================
-       CSV UPLOADER
+       INPUT PANEL (tabs)
     ======================================== */
-    .upload-zone {
-      border: 2px dashed var(--glass-border);
-      border-radius: 20px;
-      padding: 40px 28px;
-      text-align: center;
+    .input-panel {
+      border-radius: 24px;
       background: var(--glass-bg);
-      backdrop-filter: blur(16px);
-      cursor: pointer;
-      transition: all 0.3s ease;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--card-shadow);
       margin-bottom: 48px;
+      overflow: hidden;
+      transition: all var(--transition);
     }
 
-    .upload-zone:hover, .upload-zone.dragging {
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 16px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      letter-spacing: 0.03em;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* Tab panels */
+    .tab-panel {
+      display: none;
+      padding: 28px 28px 24px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Manual entry form */
+    .entry-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: end;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-group label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .field-group input {
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      width: 100%;
+    }
+
+    .field-group input:focus {
       border-color: var(--accent);
-      background: rgba(255,255,255,0.09);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* Degree indicator suffix */
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-wrap .unit {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      pointer-events: none;
+    }
+
+    .field-wrap input {
+      padding-right: 40px;
+    }
+
+    /* Preview table inside panel */
+    .entry-preview {
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .entry-preview table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .entry-preview thead tr {
+      background: rgba(255, 255, 255, 0.05);
+      position: sticky;
+      top: 0;
+    }
+
+    .entry-preview th {
+      padding: 10px 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .entry-preview td {
+      padding: 9px 16px;
+      font-size: 0.83rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .entry-preview tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .entry-preview tbody tr:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .entry-preview .del-btn {
+      background: none;
+      border: none;
+      color: #f87171;
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .entry-preview .del-btn:hover {
+      background: rgba(248, 113, 113, 0.15);
+    }
+
+    .entry-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .no-entries {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Upload zone (CSV tab) */
+    .upload-zone {
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragging {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.07);
       transform: translateY(-2px);
       box-shadow: 0 0 32px var(--accent-glow);
     }
 
     .upload-zone .upload-icon {
-      font-size: 3rem;
-      margin-bottom: 12px;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
     }
 
     .upload-zone h3 {
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 6px;
@@ -187,13 +385,15 @@
       margin-bottom: 20px;
     }
 
-    #csv-file-input { display: none; }
+    #csv-file-input {
+      display: none;
+    }
 
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 24px;
+      padding: 10px 22px;
       border-radius: 12px;
       border: none;
       font-family: 'Inter', sans-serif;
@@ -212,6 +412,17 @@
     .btn-primary:hover {
       transform: translateY(-1px);
       box-shadow: 0 6px 24px var(--accent-glow);
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 113, 113, 0.25);
+      transform: translateY(-1px);
     }
 
     /* ========================================
@@ -246,8 +457,14 @@
       transition: opacity 0.35s ease;
     }
 
-    .kpi-card:hover::before { opacity: 1; }
-    .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px var(--accent-glow); }
+    .kpi-card:hover::before {
+      opacity: 1;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px var(--accent-glow);
+    }
 
     .kpi-icon {
       font-size: 1.8rem;
@@ -342,7 +559,7 @@
       padding: 8px 16px;
       border-radius: 10px;
       border: 1px solid var(--glass-border);
-      background: rgba(255,255,255,0.07);
+      background: rgba(255, 255, 255, 0.07);
       color: var(--text-primary);
       font-family: 'Inter', sans-serif;
       font-size: 0.85rem;
@@ -350,9 +567,13 @@
       transition: border-color 0.25s;
     }
 
-    #filter-temp:focus { border-color: var(--accent); }
+    #filter-temp:focus {
+      border-color: var(--accent);
+    }
 
-    .table-wrap { overflow-x: auto; }
+    .table-wrap {
+      overflow-x: auto;
+    }
 
     table {
       width: 100%;
@@ -360,10 +581,11 @@
     }
 
     thead tr {
-      background: rgba(255,255,255,0.04);
+      background: rgba(255, 255, 255, 0.04);
     }
 
-    th, td {
+    th,
+    td {
       padding: 14px 24px;
       text-align: left;
       font-size: 0.875rem;
@@ -378,16 +600,23 @@
       border-bottom: 1px solid var(--glass-border);
     }
 
-    td { color: var(--text-primary); transition: color var(--transition); }
+    td {
+      color: var(--text-primary);
+      transition: color var(--transition);
+    }
 
     tbody tr {
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       transition: background 0.2s;
     }
 
-    tbody tr:hover { background: rgba(255,255,255,0.05); }
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
 
-    tbody tr:last-child { border-bottom: none; }
+    tbody tr:last-child {
+      border-bottom: none;
+    }
 
     .temp-badge {
       display: inline-flex;
@@ -399,10 +628,25 @@
       font-weight: 600;
     }
 
-    .temp-hot { background: rgba(249,115,22,0.18); color: #fb923c; }
-    .temp-warm { background: rgba(234,179,8,0.16); color: #facc15; }
-    .temp-mild { background: rgba(34,197,94,0.14); color: #4ade80; }
-    .temp-cold { background: rgba(96,165,250,0.16); color: #60a5fa; }
+    .temp-hot {
+      background: rgba(249, 115, 22, 0.18);
+      color: #fb923c;
+    }
+
+    .temp-warm {
+      background: rgba(234, 179, 8, 0.16);
+      color: #facc15;
+    }
+
+    .temp-mild {
+      background: rgba(34, 197, 94, 0.14);
+      color: #4ade80;
+    }
+
+    .temp-cold {
+      background: rgba(96, 165, 250, 0.16);
+      color: #60a5fa;
+    }
 
     .precip-badge {
       display: inline-flex;
@@ -414,8 +658,15 @@
       font-weight: 600;
     }
 
-    .precip-heavy { background: rgba(176,212,241,0.18); color: #90c8f5; }
-    .precip-light { background: rgba(176,212,241,0.08); color: var(--text-muted); }
+    .precip-heavy {
+      background: rgba(176, 212, 241, 0.18);
+      color: #90c8f5;
+    }
+
+    .precip-light {
+      background: rgba(176, 212, 241, 0.08);
+      color: var(--text-muted);
+    }
 
     /* ========================================
        TODAY WEATHER CARD (feature)
@@ -441,23 +692,23 @@
 
     /* Theme-specific today card backgrounds */
     body.theme-hot .today-card {
-      background: linear-gradient(135deg, rgba(180,40,0,0.55) 0%, rgba(249,115,22,0.28) 100%);
-      border: 1px solid rgba(249,115,22,0.3);
+      background: linear-gradient(135deg, rgba(180, 40, 0, 0.55) 0%, rgba(249, 115, 22, 0.28) 100%);
+      border: 1px solid rgba(249, 115, 22, 0.3);
     }
 
     body.theme-cold .today-card {
-      background: linear-gradient(135deg, rgba(0,40,120,0.5) 0%, rgba(96,192,255,0.2) 100%);
-      border: 1px solid rgba(96,192,255,0.3);
+      background: linear-gradient(135deg, rgba(0, 40, 120, 0.5) 0%, rgba(96, 192, 255, 0.2) 100%);
+      border: 1px solid rgba(96, 192, 255, 0.3);
     }
 
     body.theme-rainy .today-card {
-      background: linear-gradient(135deg, rgba(20,40,80,0.55) 0%, rgba(176,212,241,0.2) 100%);
-      border: 1px solid rgba(176,212,241,0.3);
+      background: linear-gradient(135deg, rgba(20, 40, 80, 0.55) 0%, rgba(176, 212, 241, 0.2) 100%);
+      border: 1px solid rgba(176, 212, 241, 0.3);
     }
 
     body:not(.theme-hot):not(.theme-cold):not(.theme-rainy) .today-card {
-      background: linear-gradient(135deg, rgba(30,40,90,0.55) 0%, rgba(59,130,246,0.2) 100%);
-      border: 1px solid rgba(59,130,246,0.3);
+      background: linear-gradient(135deg, rgba(30, 40, 90, 0.55) 0%, rgba(59, 130, 246, 0.2) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.3);
     }
 
     .today-card::before {
@@ -570,7 +821,9 @@
       transition: transform 0.2s;
     }
 
-    #day-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    #day-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
 
     /* ========================================
        EMPTY / LOADING STATES
@@ -588,28 +841,61 @@
       opacity: 0.5;
     }
 
-    .empty-state p { font-size: 0.95rem; font-weight: 500; }
+    .empty-state p {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
 
-    .dashboard { display: none; }
-    .dashboard.visible { display: block; }
+    .dashboard {
+      display: none;
+    }
+
+    .dashboard.visible {
+      display: block;
+    }
 
     /* ========================================
        ANIMATIONS
     ======================================== */
     @keyframes fadeSlideUp {
-      from { opacity: 0; transform: translateY(22px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @keyframes ripple {
-      from { transform: scale(0.8); opacity: 0.8; }
-      to   { transform: scale(2.5); opacity: 0; }
+      from {
+        transform: scale(0.8);
+        opacity: 0.8;
+      }
+
+      to {
+        transform: scale(2.5);
+        opacity: 0;
+      }
     }
 
-    .kpi-card:nth-child(1) { animation-delay: 0.05s; }
-    .kpi-card:nth-child(2) { animation-delay: 0.1s; }
-    .kpi-card:nth-child(3) { animation-delay: 0.15s; }
-    .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+    .kpi-card:nth-child(1) {
+      animation-delay: 0.05s;
+    }
+
+    .kpi-card:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+
+    .kpi-card:nth-child(3) {
+      animation-delay: 0.15s;
+    }
+
+    .kpi-card:nth-child(4) {
+      animation-delay: 0.2s;
+    }
 
     /* ========================================
        FOOTER
@@ -626,561 +912,1078 @@
        RESPONSIVE
     ======================================== */
     @media (max-width: 600px) {
-      .charts-grid { grid-template-columns: 1fr; }
-      .today-card { padding: 28px 20px; }
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .today-card {
+        padding: 28px 20px;
+      }
+    }
+
+    /* ========================================
+       HISTORY DRAWER
+    ======================================== */
+    .history-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .history-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .history-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(420px, 100vw);
+      height: 100vh;
+      background: linear-gradient(160deg, #0d1117 0%, #111827 100%);
+      border-left: 1px solid var(--glass-border);
+      box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .history-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
+    .drawer-header h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-close {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--glass-border);
+      color: var(--text-muted);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drawer-close:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .drawer-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .drawer-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .drawer-body::-webkit-scrollbar-thumb {
+      background: var(--glass-border);
+      border-radius: 4px;
+    }
+
+    .history-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      transition: all 0.25s;
+      animation: fadeSlideUp 0.3s ease both;
+    }
+
+    .history-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+      transform: translateX(-3px);
+    }
+
+    .hc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .hc-time {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hc-theme-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      white-space: nowrap;
+    }
+
+    .hc-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .hc-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .hc-stat .s-label {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hc-stat .s-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .hc-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-restore {
+      flex: 1;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 60%, white) 100%);
+      color: #0a0e1a;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-restore:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-del-entry {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      background: rgba(248, 113, 113, 0.1);
+      color: #f87171;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-del-entry:hover {
+      background: rgba(248, 113, 113, 0.2);
+    }
+
+    .drawer-footer {
+      padding: 16px;
+      border-top: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
+    .history-empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .history-empty .he-icon {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* History button in header */
+    .btn-history {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 40px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .btn-history:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    .hist-count {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: var(--accent);
+      color: #0a0e1a;
+      font-size: 0.65rem;
+      font-weight: 800;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      display: none;
     }
   </style>
 </head>
+
 <body>
 
-<!-- Animated particle canvas -->
-<canvas id="particles-canvas"></canvas>
+  <!-- Animated particle canvas -->
+  <canvas id="particles-canvas"></canvas>
 
-<div class="app-container">
-  <!-- HEADER -->
-  <header>
-    <div class="header-left">
-      <h1>☁️ Weather Data Analyzer</h1>
-      <p>Pure functional analysis · Immutable data · map / filter / reduce</p>
-    </div>
-    <div class="theme-badge" id="theme-badge">
-      <span class="badge-icon">🌤️</span>
-      <span id="theme-label">Awaiting Data</span>
-    </div>
-  </header>
+  <div class="app-container">
+    <!-- HEADER -->
+    <header>
+      <div class="header-left">
+        <h1>☁️ Weather Data Analyzer</h1>
+        <p>Pure functional analysis · Immutable data · map / filter / reduce</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn-history" id="history-btn" onclick="openHistory()">
+          🕑 History
+          <span class="hist-count" id="hist-count">0</span>
+        </button>
+        <div class="theme-badge" id="theme-badge">
+          <span class="badge-icon">🌤️</span>
+          <span id="theme-label">Awaiting Data</span>
+        </div>
+      </div>
+    </header>
 
-  <!-- UPLOAD ZONE -->
-  <div class="upload-zone" id="upload-zone">
-    <div class="upload-icon">📂</div>
-    <h3>Upload your weather CSV</h3>
-    <p>Columns expected: <code>Date, Temperature, Humidity, Precipitation</code><br/>or load the built-in sample dataset</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="document.getElementById('csv-file-input').click()">
-        📁 Choose CSV File
-      </button>
-      <button class="btn btn-primary" id="load-sample-btn" style="background: var(--glass-bg); color: var(--accent); border: 1px solid var(--glass-border); box-shadow: none;">
-        ⚡ Load Sample Data
-      </button>
+    <!-- HISTORY OVERLAY + DRAWER -->
+    <div class="history-overlay" id="history-overlay" onclick="closeHistory()"></div>
+    <div class="history-drawer" id="history-drawer">
+      <div class="drawer-header">
+        <h2>🕑 Analysis History</h2>
+        <button class="drawer-close" onclick="closeHistory()" title="Close">✕</button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+      <div class="drawer-footer">
+        <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="clearHistory()">🗑️ Clear All
+          History</button>
+      </div>
     </div>
-    <input type="file" id="csv-file-input" accept=".csv" />
+
+    <!-- INPUT PANEL -->
+    <div class="input-panel">
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-manual" onclick="switchTab('manual')">
+          🌡️ Enter Weather Data
+        </button>
+        <button class="tab-btn" id="tab-csv" onclick="switchTab('csv')">
+          📂 Upload CSV
+        </button>
+      </div>
+
+      <!-- === MANUAL ENTRY TAB === -->
+      <div class="tab-panel active" id="panel-manual">
+
+        <div class="entry-form">
+          <div class="field-group">
+            <label>📅 Date</label>
+            <input type="date" id="entry-date" />
+          </div>
+          <div class="field-group">
+            <label>🌡️ Temperature</label>
+            <div class="field-wrap">
+              <input type="number" id="entry-temp" placeholder="e.g. 28.5" step="0.1" min="-60" max="60" />
+              <span class="unit">°C</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>💧 Humidity</label>
+            <div class="field-wrap">
+              <input type="number" id="entry-humidity" placeholder="e.g. 65" step="0.1" min="0" max="100" />
+              <span class="unit">%</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>🌧️ Precipitation</label>
+            <div class="field-wrap">
+              <input type="number" id="entry-precip" placeholder="e.g. 5.2" step="0.1" min="0" />
+              <span class="unit">mm</span>
+            </div>
+          </div>
+          <div class="field-group" style="justify-content:flex-end;">
+            <button class="btn btn-primary" id="add-entry-btn" onclick="addEntry()">
+              ➕ Add Row
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview of entered rows -->
+        <div class="entry-preview" id="entry-preview">
+          <div class="no-entries" id="no-entries-msg">No data yet — fill the form above and click <strong>Add
+              Row</strong>.</div>
+          <table style="display:none;" id="entry-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Temp (°C)</th>
+                <th>Humidity (%)</th>
+                <th>Precip (mm)</th>
+                <th>Condition</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="entry-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="entry-actions">
+          <button class="btn btn-primary" id="analyze-manual-btn" onclick="analyzeManual()" disabled
+            style="opacity:0.45;cursor:not-allowed;">
+            ⚡ Analyze Data
+          </button>
+          <button class="btn btn-primary" id="load-sample-btn"
+            style="background: var(--glass-bg); color: var(--accent); border: 1px solid var(--glass-border); box-shadow: none;">
+            🗂️ Load Sample Data
+          </button>
+          <button class="btn btn-danger" onclick="clearEntries()" title="Clear all rows">
+            🗑️ Clear All
+          </button>
+        </div>
+      </div>
+
+      <!-- === CSV UPLOAD TAB === -->
+      <div class="tab-panel" id="panel-csv">
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📂</div>
+          <h3>Upload your weather CSV</h3>
+          <p>Columns expected: <code>Date, Temperature, Humidity, Precipitation</code><br />or drag &amp; drop a file
+            here</p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="document.getElementById('csv-file-input').click()">
+              📁 Choose CSV File
+            </button>
+          </div>
+          <input type="file" id="csv-file-input" accept=".csv" />
+        </div>
+      </div>
+
+    </div><!-- end .input-panel -->
+
+    <!-- DASHBOARD (hidden until data loaded) -->
+    <div class="dashboard" id="dashboard">
+
+      <!-- TODAY SPOTLIGHT -->
+      <div class="today-section">
+        <div class="today-card" id="today-card">
+          <div>
+            <div class="today-temp" id="today-temp-val">--<sup>°C</sup></div>
+            <div class="today-desc" id="today-desc">--</div>
+            <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;" id="today-date-label"></div>
+          </div>
+          <div class="today-meta" id="today-meta">
+            <div class="today-meta-item">
+              <span class="label">💧 Humidity</span>
+              <span class="val" id="today-humidity">--</span>
+            </div>
+            <div class="today-meta-item">
+              <span class="label">🌧 Precipitation</span>
+              <span class="val" id="today-precip">--</span>
+            </div>
+            <div class="today-meta-item">
+              <span class="label">📊 Condition</span>
+              <span class="val" id="today-condition">--</span>
+            </div>
+          </div>
+          <div class="weather-emoji" id="weather-emoji">🌤️</div>
+        </div>
+      </div>
+
+      <!-- DAY SLIDER -->
+      <div class="slider-section">
+        <div class="slider-label">
+          <span>Browse Days</span>
+          <span id="slider-day-label">Day 1</span>
+        </div>
+        <input type="range" id="day-slider" min="0" value="0" />
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-icon">🌡️</span>
+          <div class="kpi-value" id="kpi-avg-temp">--</div>
+          <div class="kpi-label">Avg Temperature</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">🔥</span>
+          <div class="kpi-value" id="kpi-max-temp">--</div>
+          <div class="kpi-label">Max Temperature</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">❄️</span>
+          <div class="kpi-value" id="kpi-min-temp">--</div>
+          <div class="kpi-label">Min Temperature</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">🌧️</span>
+          <div class="kpi-value" id="kpi-max-precip">--</div>
+          <div class="kpi-label">Max Precipitation</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">💧</span>
+          <div class="kpi-value" id="kpi-avg-humidity">--</div>
+          <div class="kpi-label">Avg Humidity</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">☀️</span>
+          <div class="kpi-value" id="kpi-hot-days">--</div>
+          <div class="kpi-label">Hot Days (>30°C)</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">🌂</span>
+          <div class="kpi-value" id="kpi-rainy-days">--</div>
+          <div class="kpi-label">Rainy Days (>5mm)</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-icon">📅</span>
+          <div class="kpi-value" id="kpi-total-days">--</div>
+          <div class="kpi-label">Total Records</div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>🌡️ Temperature Trend</h3>
+          <canvas id="chart-temp"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>💧 Humidity & Precipitation</h3>
+          <canvas id="chart-hum-precip"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>📊 Temperature Distribution</h3>
+          <canvas id="chart-temp-dist"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>🌤️ Weather Condition Breakdown</h3>
+          <canvas id="chart-conditions"></canvas>
+        </div>
+      </div>
+
+      <!-- DATA TABLE -->
+      <div class="table-section">
+        <div class="table-header">
+          <h3>📋 All Weather Records</h3>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <label style="font-size:0.8rem;color:var(--text-muted);">Min Temp filter:</label>
+            <input type="number" id="filter-temp" placeholder="e.g. 30" style="width:110px;" />
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Temperature</th>
+                <th>Humidity</th>
+                <th>Precipitation</th>
+                <th>Condition</th>
+              </tr>
+            </thead>
+            <tbody id="data-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end .dashboard -->
+
+    <footer>Built with ❤️ using pure functional Python principles · map · filter · reduce · lambda · immutable tuples
+    </footer>
   </div>
 
-  <!-- DASHBOARD (hidden until data loaded) -->
-  <div class="dashboard" id="dashboard">
+  <script>
+    // ============================================================
+    //  PURE FUNCTIONAL UTILITIES (mirrors Python analysis.py)
+    // ============================================================
 
-    <!-- TODAY SPOTLIGHT -->
-    <div class="today-section">
-      <div class="today-card" id="today-card">
-        <div>
-          <div class="today-temp" id="today-temp-val">--<sup>°C</sup></div>
-          <div class="today-desc" id="today-desc">--</div>
-          <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;" id="today-date-label"></div>
-        </div>
-        <div class="today-meta" id="today-meta">
-          <div class="today-meta-item">
-            <span class="label">💧 Humidity</span>
-            <span class="val" id="today-humidity">--</span>
-          </div>
-          <div class="today-meta-item">
-            <span class="label">🌧 Precipitation</span>
-            <span class="val" id="today-precip">--</span>
-          </div>
-          <div class="today-meta-item">
-            <span class="label">📊 Condition</span>
-            <span class="val" id="today-condition">--</span>
-          </div>
-        </div>
-        <div class="weather-emoji" id="weather-emoji">🌤️</div>
-      </div>
-    </div>
+    // All data stored as frozen (immutable) tuples-of-objects
+    const freeze = arr => Object.freeze(arr.map(r => Object.freeze({ ...r })));
 
-    <!-- DAY SLIDER -->
-    <div class="slider-section">
-      <div class="slider-label">
-        <span>Browse Days</span>
-        <span id="slider-day-label">Day 1</span>
-      </div>
-      <input type="range" id="day-slider" min="0" value="0" />
-    </div>
+    // map / filter / reduce wrappers (pure, returning new arrays)
+    const mapData = (data, fn) => data.map(fn);
+    const filterData = (data, fn) => data.filter(fn);
+    const reduceData = (data, fn, init) => data.reduce(fn, init);
 
-    <!-- KPI CARDS -->
-    <div class="kpi-grid" id="kpi-grid">
-      <div class="kpi-card">
-        <span class="kpi-icon">🌡️</span>
-        <div class="kpi-value" id="kpi-avg-temp">--</div>
-        <div class="kpi-label">Avg Temperature</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">🔥</span>
-        <div class="kpi-value" id="kpi-max-temp">--</div>
-        <div class="kpi-label">Max Temperature</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">❄️</span>
-        <div class="kpi-value" id="kpi-min-temp">--</div>
-        <div class="kpi-label">Min Temperature</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">🌧️</span>
-        <div class="kpi-value" id="kpi-max-precip">--</div>
-        <div class="kpi-label">Max Precipitation</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">💧</span>
-        <div class="kpi-value" id="kpi-avg-humidity">--</div>
-        <div class="kpi-label">Avg Humidity</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">☀️</span>
-        <div class="kpi-value" id="kpi-hot-days">--</div>
-        <div class="kpi-label">Hot Days (>30°C)</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">🌂</span>
-        <div class="kpi-value" id="kpi-rainy-days">--</div>
-        <div class="kpi-label">Rainy Days (>5mm)</div>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-icon">📅</span>
-        <div class="kpi-value" id="kpi-total-days">--</div>
-        <div class="kpi-label">Total Records</div>
-      </div>
-    </div>
+    // Pure aggregation functions
+    const calcAvg = values => reduceData(values, (acc, x) => acc + x, 0) / (values.length || 1);
+    const calcMax = values => reduceData(values, (acc, x) => x > acc ? x : acc, -Infinity);
+    const calcMin = values => reduceData(values, (acc, x) => x < acc ? x : acc, Infinity);
 
-    <!-- CHARTS -->
-    <div class="charts-grid">
-      <div class="chart-card">
-        <h3>🌡️ Temperature Trend</h3>
-        <canvas id="chart-temp"></canvas>
-      </div>
-      <div class="chart-card">
-        <h3>💧 Humidity & Precipitation</h3>
-        <canvas id="chart-hum-precip"></canvas>
-      </div>
-      <div class="chart-card">
-        <h3>📊 Temperature Distribution</h3>
-        <canvas id="chart-temp-dist"></canvas>
-      </div>
-      <div class="chart-card">
-        <h3>🌤️ Weather Condition Breakdown</h3>
-        <canvas id="chart-conditions"></canvas>
-      </div>
-    </div>
+    // Immutable dataset reference
+    let weatherData = freeze([]);
 
-    <!-- DATA TABLE -->
-    <div class="table-section">
-      <div class="table-header">
-        <h3>📋 All Weather Records</h3>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <label style="font-size:0.8rem;color:var(--text-muted);">Min Temp filter:</label>
-          <input type="number" id="filter-temp" placeholder="e.g. 30" style="width:110px;" />
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Temperature</th>
-              <th>Humidity</th>
-              <th>Precipitation</th>
-              <th>Condition</th>
-            </tr>
-          </thead>
-          <tbody id="data-table-body"></tbody>
-        </table>
-      </div>
-    </div>
+    // ============================================================
+    //  CSV PARSER
+    // ============================================================
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const rows = lines.slice(1);
 
-  </div><!-- end .dashboard -->
-
-  <footer>Built with ❤️ using pure functional Python principles · map · filter · reduce · lambda · immutable tuples</footer>
-</div>
-
-<script>
-// ============================================================
-//  PURE FUNCTIONAL UTILITIES (mirrors Python analysis.py)
-// ============================================================
-
-// All data stored as frozen (immutable) tuples-of-objects
-const freeze = arr => Object.freeze(arr.map(r => Object.freeze({...r})));
-
-// map / filter / reduce wrappers (pure, returning new arrays)
-const mapData    = (data, fn) => data.map(fn);
-const filterData = (data, fn) => data.filter(fn);
-const reduceData = (data, fn, init) => data.reduce(fn, init);
-
-// Pure aggregation functions
-const calcAvg    = values => reduceData(values, (acc, x) => acc + x, 0) / (values.length || 1);
-const calcMax    = values => reduceData(values, (acc, x) => x > acc ? x : acc, -Infinity);
-const calcMin    = values => reduceData(values, (acc, x) => x < acc ? x : acc,  Infinity);
-
-// Immutable dataset reference
-let weatherData = freeze([]);
-
-// ============================================================
-//  CSV PARSER
-// ============================================================
-function parseCSV(text) {
-  const lines  = text.trim().split('\n');
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const rows   = lines.slice(1);
-
-  // map each line to an immutable record
-  return freeze(
-    mapData(rows, row => {
-      const cells = row.split(',').map(c => c.trim());
-      return {
-        date:          cells[header.indexOf('date')]          ?? '',
-        temperature:   parseFloat(cells[header.indexOf('temperature')])   ?? 0,
-        humidity:      parseFloat(cells[header.indexOf('humidity')])      ?? 0,
-        precipitation: parseFloat(cells[header.indexOf('precipitation')]) ?? 0,
-      };
-    }).filter(r => !isNaN(r.temperature))
-  );
-}
-
-// ============================================================
-//  WEATHER CONDITION LOGIC (pure)
-// ============================================================
-function classifyDay(record) {
-  const { temperature: t, precipitation: p } = record;
-  if (p > 10)  return { label: 'Heavy Rain', emoji: '⛈️',  theme: 'rainy' };
-  if (p > 5)   return { label: 'Rainy',      emoji: '🌧️', theme: 'rainy' };
-  if (p > 0)   return { label: 'Drizzle',    emoji: '🌦️', theme: 'rainy' };
-  if (t >= 32) return { label: 'Scorching',  emoji: '🌋',  theme: 'hot'   };
-  if (t >= 30) return { label: 'Hot',        emoji: '☀️',  theme: 'hot'   };
-  if (t >= 25) return { label: 'Warm',       emoji: '⛅',  theme: 'mild'  };
-  if (t >= 15) return { label: 'Mild',       emoji: '🌤️', theme: 'mild'  };
-  if (t >= 5)  return { label: 'Cold',       emoji: '🧊',  theme: 'cold'  };
-  return { label: 'Freezing', emoji: '❄️', theme: 'cold' };
-}
-
-function getTempBadgeClass(t) {
-  if (t >= 31) return 'temp-hot';
-  if (t >= 28) return 'temp-warm';
-  if (t >= 20) return 'temp-mild';
-  return 'temp-cold';
-}
-
-// ============================================================
-//  THEME ENGINE
-// ============================================================
-const THEME_META = {
-  hot:   { label: '☀️ Hot Mode',    icon: '🔆', badge: '🌡️ HOT'   },
-  cold:  { label: '❄️ Cold Mode',   icon: '🧊', badge: '🧊 COLD'   },
-  rainy: { label: '🌧️ Rain Mode',  icon: '💧', badge: '💧 RAINY'  },
-  mild:  { label: '🌤️ Mild Mode',  icon: '⛅', badge: '🌤️ MILD'  },
-};
-
-let currentTheme = 'mild';
-
-function applyTheme(theme) {
-  if (theme === currentTheme && document.body.classList.contains(`theme-${theme}`)) return;
-  document.body.classList.remove('theme-hot','theme-cold','theme-rainy');
-  if (theme !== 'mild') document.body.classList.add(`theme-${theme}`);
-  currentTheme = theme;
-
-  const meta = THEME_META[theme] || THEME_META.mild;
-  document.getElementById('theme-badge').innerHTML =
-    `<span class="badge-icon">${meta.icon}</span><span id="theme-label">${meta.label}</span>`;
-
-  updateChartColors();
-}
-
-// Determine overall theme from entire dataset
-function deriveDatasetTheme(data) {
-  const temps   = mapData(data, r => r.temperature);
-  const precips = mapData(data, r => r.precipitation);
-  const avgT    = calcAvg(temps);
-  const maxP    = calcMax(precips);
-
-  if (maxP > 8)   return 'rainy';
-  if (avgT >= 30) return 'hot';
-  if (avgT <= 18) return 'cold';
-  return 'mild';
-}
-
-// ============================================================
-//  CHART INSTANCES + RENDERING
-// ============================================================
-let chartInstances = {};
-
-function getAccentColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6';
-}
-
-function getGlassBorder() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--glass-border').trim() || 'rgba(255,255,255,0.12)';
-}
-
-function buildCharts(data) {
-  const labels = mapData(data, r => r.date);
-  const temps  = mapData(data, r => r.temperature);
-  const hums   = mapData(data, r => r.humidity);
-  const precs  = mapData(data, r => r.precipitation);
-  const accent = getAccentColor();
-
-  // Destroy existing
-  Object.values(chartInstances).forEach(c => c.destroy());
-  chartInstances = {};
-
-  const chartDefaults = {
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: {
-      legend: { labels: { color: 'rgba(255,255,255,0.65)', font: { family: 'Inter', size: 12 } } },
-      tooltip: {
-        backgroundColor: 'rgba(10,14,26,0.9)',
-        titleColor: '#fff',
-        bodyColor: 'rgba(255,255,255,0.8)',
-        borderColor: accent,
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 10,
-      }
-    },
-    scales: {
-      x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, grid: { color: getGlassBorder() } },
-      y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, grid: { color: getGlassBorder() } }
+      // map each line to an immutable record
+      return freeze(
+        mapData(rows, row => {
+          const cells = row.split(',').map(c => c.trim());
+          return {
+            date: cells[header.indexOf('date')] ?? '',
+            temperature: parseFloat(cells[header.indexOf('temperature')]) ?? 0,
+            humidity: parseFloat(cells[header.indexOf('humidity')]) ?? 0,
+            precipitation: parseFloat(cells[header.indexOf('precipitation')]) ?? 0,
+          };
+        }).filter(r => !isNaN(r.temperature))
+      );
     }
-  };
 
-  // 1. Temperature line chart
-  chartInstances.temp = new Chart(document.getElementById('chart-temp'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Temperature (°C)',
-        data: temps,
-        borderColor: accent,
-        backgroundColor: `${accent}28`,
-        borderWidth: 2.5,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: accent,
-        pointRadius: 5,
-        pointHoverRadius: 8,
-      }]
-    },
-    options: { ...chartDefaults }
-  });
+    // ============================================================
+    //  WEATHER CONDITION LOGIC (pure)
+    // ============================================================
+    function classifyDay(record) {
+      const { temperature: t, precipitation: p } = record;
+      if (p > 10) return { label: 'Heavy Rain', emoji: '⛈️', theme: 'rainy' };
+      if (p > 5) return { label: 'Rainy', emoji: '🌧️', theme: 'rainy' };
+      if (p > 0) return { label: 'Drizzle', emoji: '🌦️', theme: 'rainy' };
+      if (t >= 32) return { label: 'Scorching', emoji: '🌋', theme: 'hot' };
+      if (t >= 30) return { label: 'Hot', emoji: '☀️', theme: 'hot' };
+      if (t >= 25) return { label: 'Warm', emoji: '⛅', theme: 'mild' };
+      if (t >= 15) return { label: 'Mild', emoji: '🌤️', theme: 'mild' };
+      if (t >= 5) return { label: 'Cold', emoji: '🧊', theme: 'cold' };
+      return { label: 'Freezing', emoji: '❄️', theme: 'cold' };
+    }
 
-  // 2. Humidity + Precipitation bar/line
-  chartInstances.humPrecip = new Chart(document.getElementById('chart-hum-precip'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Humidity (%)',
-          data: hums,
-          backgroundColor: `${accent}55`,
-          borderColor: accent,
-          borderWidth: 1.5,
-          borderRadius: 6,
-          yAxisID: 'y',
+    function getTempBadgeClass(t) {
+      if (t >= 31) return 'temp-hot';
+      if (t >= 28) return 'temp-warm';
+      if (t >= 20) return 'temp-mild';
+      return 'temp-cold';
+    }
+
+    // ============================================================
+    //  THEME ENGINE
+    // ============================================================
+    const THEME_META = {
+      hot: { label: '☀️ Hot Mode', icon: '🔆', badge: '🌡️ HOT' },
+      cold: { label: '❄️ Cold Mode', icon: '🧊', badge: '🧊 COLD' },
+      rainy: { label: '🌧️ Rain Mode', icon: '💧', badge: '💧 RAINY' },
+      mild: { label: '🌤️ Mild Mode', icon: '⛅', badge: '🌤️ MILD' },
+    };
+
+    let currentTheme = 'mild';
+
+    function applyTheme(theme) {
+      if (theme === currentTheme && document.body.classList.contains(`theme-${theme}`)) return;
+      document.body.classList.remove('theme-hot', 'theme-cold', 'theme-rainy');
+      if (theme !== 'mild') document.body.classList.add(`theme-${theme}`);
+      currentTheme = theme;
+
+      const meta = THEME_META[theme] || THEME_META.mild;
+      document.getElementById('theme-badge').innerHTML =
+        `<span class="badge-icon">${meta.icon}</span><span id="theme-label">${meta.label}</span>`;
+
+      updateChartColors();
+    }
+
+    // Determine overall theme from entire dataset
+    function deriveDatasetTheme(data) {
+      const temps = mapData(data, r => r.temperature);
+      const precips = mapData(data, r => r.precipitation);
+      const avgT = calcAvg(temps);
+      const maxP = calcMax(precips);
+
+      if (maxP > 8) return 'rainy';
+      if (avgT >= 30) return 'hot';
+      if (avgT <= 18) return 'cold';
+      return 'mild';
+    }
+
+    // ============================================================
+    //  CHART INSTANCES + RENDERING
+    // ============================================================
+    let chartInstances = {};
+
+    function getAccentColor() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6';
+    }
+
+    function getGlassBorder() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--glass-border').trim() || 'rgba(255,255,255,0.12)';
+    }
+
+    function buildCharts(data) {
+      const labels = mapData(data, r => r.date);
+      const temps = mapData(data, r => r.temperature);
+      const hums = mapData(data, r => r.humidity);
+      const precs = mapData(data, r => r.precipitation);
+      const accent = getAccentColor();
+
+      // Destroy existing
+      Object.values(chartInstances).forEach(c => c.destroy());
+      chartInstances = {};
+
+      const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { labels: { color: 'rgba(255,255,255,0.65)', font: { family: 'Inter', size: 12 } } },
+          tooltip: {
+            backgroundColor: 'rgba(10,14,26,0.9)',
+            titleColor: '#fff',
+            bodyColor: 'rgba(255,255,255,0.8)',
+            borderColor: accent,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 10,
+          }
         },
-        {
-          label: 'Precipitation (mm)',
-          type: 'line',
-          data: precs,
-          borderColor: '#b0d4f1',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          tension: 0.4,
-          pointRadius: 4,
-          pointBackgroundColor: '#b0d4f1',
-          yAxisID: 'y1',
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, grid: { color: getGlassBorder() } },
+          y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, grid: { color: getGlassBorder() } }
         }
-      ]
-    },
-    options: {
-      ...chartDefaults,
-      scales: {
-        x: chartDefaults.scales.x,
-        y:  { ...chartDefaults.scales.y, position: 'left',  title: { display: true, text: 'Humidity %',   color: 'rgba(255,255,255,0.5)' } },
-        y1: { ...chartDefaults.scales.y, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Precip mm', color: 'rgba(255,255,255,0.5)' } }
-      }
+      };
+
+      // 1. Temperature line chart
+      chartInstances.temp = new Chart(document.getElementById('chart-temp'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Temperature (°C)',
+            data: temps,
+            borderColor: accent,
+            backgroundColor: `${accent}28`,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: accent,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+          }]
+        },
+        options: { ...chartDefaults }
+      });
+
+      // 2. Humidity + Precipitation bar/line
+      chartInstances.humPrecip = new Chart(document.getElementById('chart-hum-precip'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Humidity (%)',
+              data: hums,
+              backgroundColor: `${accent}55`,
+              borderColor: accent,
+              borderWidth: 1.5,
+              borderRadius: 6,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Precipitation (mm)',
+              type: 'line',
+              data: precs,
+              borderColor: '#b0d4f1',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.4,
+              pointRadius: 4,
+              pointBackgroundColor: '#b0d4f1',
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            x: chartDefaults.scales.x,
+            y: { ...chartDefaults.scales.y, position: 'left', title: { display: true, text: 'Humidity %', color: 'rgba(255,255,255,0.5)' } },
+            y1: { ...chartDefaults.scales.y, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Precip mm', color: 'rgba(255,255,255,0.5)' } }
+          }
+        }
+      });
+
+      // 3. Temperature distribution (stacked histogram via bar)
+      const buckets = ['<20°C', '20-25°C', '25-30°C', '30-35°C', '>35°C'];
+      const counts = reduceData(temps, (acc, t) => {
+        const i = t < 20 ? 0 : t < 25 ? 1 : t < 30 ? 2 : t < 35 ? 3 : 4;
+        acc[i]++;
+        return acc;
+      }, [0, 0, 0, 0, 0]);
+
+      const distColors = ['#60a5fa', '#4ade80', '#facc15', '#fb923c', '#f87171'];
+      chartInstances.tempDist = new Chart(document.getElementById('chart-temp-dist'), {
+        type: 'bar',
+        data: {
+          labels: buckets,
+          datasets: [{
+            label: 'Days',
+            data: counts,
+            backgroundColor: distColors,
+            borderRadius: 8,
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            x: chartDefaults.scales.x,
+            y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, stepSize: 1 } }
+          },
+          plugins: { ...chartDefaults.plugins, legend: { display: false } }
+        }
+      });
+
+      // 4. Conditions doughnut
+      const condCounts = reduceData(data, (acc, r) => {
+        const c = classifyDay(r).label;
+        acc[c] = (acc[c] || 0) + 1;
+        return acc;
+      }, {});
+
+      const condLabels = Object.keys(condCounts);
+      const condVals = Object.values(condCounts);
+      const condColors = condLabels.map((_, i) => {
+        const palette = ['#3b82f6', '#f97316', '#60c0ff', '#b0d4f1', '#fb923c', '#4ade80', '#facc15'];
+        return palette[i % palette.length];
+      });
+
+      chartInstances.conditions = new Chart(document.getElementById('chart-conditions'), {
+        type: 'doughnut',
+        data: {
+          labels: condLabels,
+          datasets: [{ data: condVals, backgroundColor: condColors, borderWidth: 0, hoverOffset: 10 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.65)', font: { family: 'Inter', size: 12 }, padding: 16 } },
+            tooltip: chartDefaults.plugins.tooltip
+          }
+        }
+      });
     }
-  });
 
-  // 3. Temperature distribution (stacked histogram via bar)
-  const buckets = ['<20°C','20-25°C','25-30°C','30-35°C','>35°C'];
-  const counts  = reduceData(temps, (acc, t) => {
-    const i = t < 20 ? 0 : t < 25 ? 1 : t < 30 ? 2 : t < 35 ? 3 : 4;
-    acc[i]++;
-    return acc;
-  }, [0,0,0,0,0]);
-
-  const distColors = ['#60a5fa','#4ade80','#facc15','#fb923c','#f87171'];
-  chartInstances.tempDist = new Chart(document.getElementById('chart-temp-dist'), {
-    type: 'bar',
-    data: {
-      labels: buckets,
-      datasets: [{
-        label: 'Days',
-        data: counts,
-        backgroundColor: distColors,
-        borderRadius: 8,
-        borderWidth: 0,
-      }]
-    },
-    options: {
-      ...chartDefaults,
-      scales: {
-        x: chartDefaults.scales.x,
-        y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, stepSize: 1 } }
-      },
-      plugins: { ...chartDefaults.plugins, legend: { display: false } }
+    function updateChartColors() {
+      if (!weatherData.length) return;
+      buildCharts(weatherData);
     }
-  });
 
-  // 4. Conditions doughnut
-  const condCounts = reduceData(data, (acc, r) => {
-    const c = classifyDay(r).label;
-    acc[c] = (acc[c] || 0) + 1;
-    return acc;
-  }, {});
+    // ============================================================
+    //  KPIs
+    // ============================================================
+    function renderKPIs(data) {
+      const temps = mapData(data, r => r.temperature);
+      const precs = mapData(data, r => r.precipitation);
+      const hums = mapData(data, r => r.humidity);
 
-  const condLabels = Object.keys(condCounts);
-  const condVals   = Object.values(condCounts);
-  const condColors = condLabels.map((_, i) => {
-    const palette = ['#3b82f6','#f97316','#60c0ff','#b0d4f1','#fb923c','#4ade80','#facc15'];
-    return palette[i % palette.length];
-  });
+      const hotDays = filterData(data, r => r.temperature > 30).length;
+      const rainyDays = filterData(data, r => r.precipitation > 5).length;
 
-  chartInstances.conditions = new Chart(document.getElementById('chart-conditions'), {
-    type: 'doughnut',
-    data: {
-      labels: condLabels,
-      datasets: [{ data: condVals, backgroundColor: condColors, borderWidth: 0, hoverOffset: 10 }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.65)', font: { family: 'Inter', size: 12 }, padding: 16 } },
-        tooltip: chartDefaults.plugins.tooltip
-      }
+      document.getElementById('kpi-avg-temp').textContent = `${calcAvg(temps).toFixed(1)}°C`;
+      document.getElementById('kpi-max-temp').textContent = `${calcMax(temps).toFixed(1)}°C`;
+      document.getElementById('kpi-min-temp').textContent = `${calcMin(temps).toFixed(1)}°C`;
+      document.getElementById('kpi-max-precip').textContent = `${calcMax(precs).toFixed(1)} mm`;
+      document.getElementById('kpi-avg-humidity').textContent = `${calcAvg(hums).toFixed(1)}%`;
+      document.getElementById('kpi-hot-days').textContent = hotDays;
+      document.getElementById('kpi-rainy-days').textContent = rainyDays;
+      document.getElementById('kpi-total-days').textContent = data.length;
     }
-  });
-}
 
-function updateChartColors() {
-  if (!weatherData.length) return;
-  buildCharts(weatherData);
-}
+    // ============================================================
+    //  TABLE
+    // ============================================================
+    function renderTable(data) {
+      const tbody = document.getElementById('data-table-body');
+      tbody.innerHTML = '';
 
-// ============================================================
-//  KPIs
-// ============================================================
-function renderKPIs(data) {
-  const temps  = mapData(data, r => r.temperature);
-  const precs  = mapData(data, r => r.precipitation);
-  const hums   = mapData(data, r => r.humidity);
-
-  const hotDays   = filterData(data, r => r.temperature > 30).length;
-  const rainyDays = filterData(data, r => r.precipitation > 5).length;
-
-  document.getElementById('kpi-avg-temp').textContent   = `${calcAvg(temps).toFixed(1)}°C`;
-  document.getElementById('kpi-max-temp').textContent   = `${calcMax(temps).toFixed(1)}°C`;
-  document.getElementById('kpi-min-temp').textContent   = `${calcMin(temps).toFixed(1)}°C`;
-  document.getElementById('kpi-max-precip').textContent = `${calcMax(precs).toFixed(1)} mm`;
-  document.getElementById('kpi-avg-humidity').textContent = `${calcAvg(hums).toFixed(1)}%`;
-  document.getElementById('kpi-hot-days').textContent   = hotDays;
-  document.getElementById('kpi-rainy-days').textContent = rainyDays;
-  document.getElementById('kpi-total-days').textContent = data.length;
-}
-
-// ============================================================
-//  TABLE
-// ============================================================
-function renderTable(data) {
-  const tbody = document.getElementById('data-table-body');
-  tbody.innerHTML = '';
-
-  mapData(data, r => {
-    const cond  = classifyDay(r);
-    const tc    = getTempBadgeClass(r.temperature);
-    const pc    = r.precipitation > 5 ? 'precip-heavy' : 'precip-light';
-    return `<tr>
+      mapData(data, r => {
+        const cond = classifyDay(r);
+        const tc = getTempBadgeClass(r.temperature);
+        const pc = r.precipitation > 5 ? 'precip-heavy' : 'precip-light';
+        return `<tr>
       <td>${r.date}</td>
       <td><span class="temp-badge ${tc}">${cond.emoji} ${r.temperature.toFixed(1)}°C</span></td>
       <td>${r.humidity.toFixed(1)}%</td>
       <td><span class="precip-badge ${pc}">💧 ${r.precipitation.toFixed(1)} mm</span></td>
       <td>${cond.label}</td>
     </tr>`;
-  }).forEach(html => { tbody.insertAdjacentHTML('beforeend', html); });
-}
+      }).forEach(html => { tbody.insertAdjacentHTML('beforeend', html); });
+    }
 
-// ============================================================
-//  SLIDER — Today Card
-// ============================================================
-function updateTodayCard(record) {
-  const cond = classifyDay(record);
+    // ============================================================
+    //  SLIDER — Today Card
+    // ============================================================
+    function updateTodayCard(record) {
+      const cond = classifyDay(record);
 
-  document.getElementById('today-temp-val').innerHTML    = `${record.temperature.toFixed(1)}<sup>°C</sup>`;
-  document.getElementById('today-desc').textContent      = cond.label;
-  document.getElementById('today-humidity').textContent  = `${record.humidity.toFixed(1)}%`;
-  document.getElementById('today-precip').textContent    = `${record.precipitation.toFixed(1)} mm`;
-  document.getElementById('today-condition').textContent = cond.emoji;
-  document.getElementById('weather-emoji').textContent   = cond.emoji;
-  document.getElementById('today-date-label').innerHTML  =
-    `<span style="font-size:0.88rem;color:var(--text-muted);">📅 ${record.date}</span>`;
+      document.getElementById('today-temp-val').innerHTML = `${record.temperature.toFixed(1)}<sup>°C</sup>`;
+      document.getElementById('today-desc').textContent = cond.label;
+      document.getElementById('today-humidity').textContent = `${record.humidity.toFixed(1)}%`;
+      document.getElementById('today-precip').textContent = `${record.precipitation.toFixed(1)} mm`;
+      document.getElementById('today-condition').textContent = cond.emoji;
+      document.getElementById('weather-emoji').textContent = cond.emoji;
+      document.getElementById('today-date-label').innerHTML =
+        `<span style="font-size:0.88rem;color:var(--text-muted);">📅 ${record.date}</span>`;
 
-  applyTheme(cond.theme);
-}
+      applyTheme(cond.theme);
+    }
 
-function initSlider(data) {
-  const slider = document.getElementById('day-slider');
-  slider.max = data.length - 1;
-  slider.value = 0;
+    function initSlider(data) {
+      const slider = document.getElementById('day-slider');
+      slider.max = data.length - 1;
+      slider.value = 0;
 
-  slider.addEventListener('input', () => {
-    const idx = parseInt(slider.value, 10);
-    document.getElementById('slider-day-label').textContent = `Day ${idx + 1} of ${data.length}`;
-    updateTodayCard(data[idx]);
-  });
+      slider.addEventListener('input', () => {
+        const idx = parseInt(slider.value, 10);
+        document.getElementById('slider-day-label').textContent = `Day ${idx + 1} of ${data.length}`;
+        updateTodayCard(data[idx]);
+      });
 
-  document.getElementById('slider-day-label').textContent = `Day 1 of ${data.length}`;
-  updateTodayCard(data[0]);
-}
+      document.getElementById('slider-day-label').textContent = `Day 1 of ${data.length}`;
+      updateTodayCard(data[0]);
+    }
 
-// ============================================================
-//  TABLE FILTER
-// ============================================================
-document.getElementById('filter-temp').addEventListener('input', (e) => {
-  const minTemp = parseFloat(e.target.value);
-  const filtered = isNaN(minTemp)
-    ? weatherData
-    : filterData(weatherData, r => r.temperature >= minTemp);
-  renderTable(filtered);
-});
+    // ============================================================
+    //  TABLE FILTER
+    // ============================================================
+    document.getElementById('filter-temp').addEventListener('input', (e) => {
+      const minTemp = parseFloat(e.target.value);
+      const filtered = isNaN(minTemp)
+        ? weatherData
+        : filterData(weatherData, r => r.temperature >= minTemp);
+      renderTable(filtered);
+    });
 
-// ============================================================
-//  MASTER RENDER
-// ============================================================
-function renderDashboard(data) {
-  weatherData = data;
+    // ============================================================
+    //  MASTER RENDER
+    // ============================================================
+    function renderDashboard(data) {
+      weatherData = data;
 
-  document.getElementById('dashboard').classList.add('visible');
-  document.getElementById('upload-zone').style.marginBottom = '32px';
+      document.getElementById('dashboard').classList.add('visible');
 
-  renderKPIs(data);
-  buildCharts(data);
-  renderTable(data);
-  initSlider(data);
+      renderKPIs(data);
+      buildCharts(data);
+      renderTable(data);
+      initSlider(data);
 
-  const globalTheme = deriveDatasetTheme(data);
-  applyTheme(globalTheme);
-}
+      const globalTheme = deriveDatasetTheme(data);
+      applyTheme(globalTheme);
 
-// ============================================================
-//  SAMPLE DATA (mirrors weather_data.csv exactly)
-// ============================================================
-const SAMPLE_CSV = `Date,Temperature,Humidity,Precipitation
+      // Save to history
+      saveToHistory(data, globalTheme);
+
+      // Scroll to dashboard smoothly
+      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ============================================================
+    //  HISTORY — localStorage persistence
+    // ============================================================
+    const HISTORY_KEY = 'wda_history';
+    const HISTORY_MAX = 20;
+
+    function loadHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+      catch (e) { return []; }
+    }
+
+    function saveHistory(list) {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    }
+
+    function saveToHistory(data, theme) {
+      const list = loadHistory();
+      const temps = mapData(data, r => r.temperature);
+      const entry = {
+        id: Date.now(),
+        savedAt: new Date().toISOString(),
+        theme,
+        records: data.length,
+        avgTemp: +calcAvg(temps).toFixed(1),
+        maxTemp: +calcMax(temps).toFixed(1),
+        minTemp: +calcMin(temps).toFixed(1),
+        dateFrom: data[0]?.date || '',
+        dateTo: data[data.length - 1]?.date || '',
+        rows: data.map(r => ({ ...r })),   // serialisable copy
+      };
+      list.unshift(entry);
+      if (list.length > HISTORY_MAX) list.length = HISTORY_MAX;
+      saveHistory(list);
+      updateHistoryBadge();
+    }
+
+    function updateHistoryBadge() {
+      const list = loadHistory();
+      const badge = document.getElementById('hist-count');
+      if (list.length > 0) {
+        badge.textContent = list.length;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    const THEME_ICONS = { hot: '☀️', cold: '❄️', rainy: '🌧️', mild: '🌤️' };
+
+    function renderHistoryList() {
+      const list = loadHistory();
+      const body = document.getElementById('drawer-body');
+      body.innerHTML = '';
+
+      if (!list.length) {
+        body.innerHTML = `<div class="history-empty"><span class="he-icon">📭</span>No history yet.<br>Analyze some data to see entries here.</div>`;
+        return;
+      }
+
+      list.forEach((entry, idx) => {
+        const d = new Date(entry.savedAt);
+        const when = d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const icon = THEME_ICONS[entry.theme] || '🌤️';
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.innerHTML = `
+          <div class="hc-top">
+            <span class="hc-time">📅 ${when}</span>
+            <span class="hc-theme-badge">${icon} ${entry.theme.toUpperCase()}</span>
+          </div>
+          <div class="hc-stats">
+            <div class="hc-stat"><span class="s-label">Records</span><span class="s-val">${entry.records}</span></div>
+            <div class="hc-stat"><span class="s-label">Avg Temp</span><span class="s-val">${entry.avgTemp}°C</span></div>
+            <div class="hc-stat"><span class="s-label">Max</span><span class="s-val">${entry.maxTemp}°C</span></div>
+            <div class="hc-stat"><span class="s-label">Min</span><span class="s-val">${entry.minTemp}°C</span></div>
+          </div>
+          ${entry.dateFrom ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">📆 ${entry.dateFrom} → ${entry.dateTo}</div>` : ''}
+          <div class="hc-actions">
+            <button class="btn-restore" onclick="restoreSession(${idx})">⚡ Restore</button>
+            <button class="btn-del-entry" onclick="deleteHistoryEntry(${idx})">✕</button>
+          </div>`;
+        body.appendChild(card);
+      });
+    }
+
+    function openHistory() {
+      renderHistoryList();
+      document.getElementById('history-overlay').classList.add('open');
+      document.getElementById('history-drawer').classList.add('open');
+    }
+
+    function closeHistory() {
+      document.getElementById('history-overlay').classList.remove('open');
+      document.getElementById('history-drawer').classList.remove('open');
+    }
+
+    function restoreSession(idx) {
+      const list = loadHistory();
+      if (!list[idx]) return;
+      const rows = freeze(list[idx].rows);
+      closeHistory();
+      renderDashboard(rows);
+      // Also repopulate the manual entry table
+      manualEntries = list[idx].rows.map(r => ({ ...r }));
+      refreshEntryTable();
+    }
+
+    function deleteHistoryEntry(idx) {
+      const list = loadHistory();
+      list.splice(idx, 1);
+      saveHistory(list);
+      updateHistoryBadge();
+      renderHistoryList();
+    }
+
+    function clearHistory() {
+      if (!confirm('Clear all history? This cannot be undone.')) return;
+      localStorage.removeItem(HISTORY_KEY);
+      updateHistoryBadge();
+      renderHistoryList();
+    }
+
+    // Init badge on page load
+    updateHistoryBadge();
+
+    // Close drawer on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeHistory();
+    });
+
+    // ============================================================
+    //  SAMPLE DATA
+    // ============================================================
+    const SAMPLE_CSV = `Date,Temperature,Humidity,Precipitation
 2023-08-01,28.5,60.2,0.0
 2023-08-02,31.2,55.1,0.0
 2023-08-03,32.5,50.0,0.0
@@ -1192,111 +1995,286 @@ const SAMPLE_CSV = `Date,Temperature,Humidity,Precipitation
 2023-08-09,33.0,40.5,0.0
 2023-08-10,25.4,85.0,20.5`;
 
-document.getElementById('load-sample-btn').addEventListener('click', () => {
-  renderDashboard(parseCSV(SAMPLE_CSV));
-});
-
-// File upload
-document.getElementById('csv-file-input').addEventListener('change', function() {
-  if (!this.files.length) return;
-  const reader = new FileReader();
-  reader.onload = e => renderDashboard(parseCSV(e.target.result));
-  reader.readAsText(this.files[0]);
-});
-
-// Drag & drop
-const zone = document.getElementById('upload-zone');
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragging'); });
-zone.addEventListener('dragleave',   () => zone.classList.remove('dragging'));
-zone.addEventListener('drop', e => {
-  e.preventDefault();
-  zone.classList.remove('dragging');
-  const file = e.dataTransfer.files[0];
-  if (file) { const r = new FileReader(); r.onload = ev => renderDashboard(parseCSV(ev.target.result)); r.readAsText(file); }
-});
-
-// ============================================================
-//  ANIMATED PARTICLE CANVAS
-// ============================================================
-(function initParticles() {
-  const canvas = document.getElementById('particles-canvas');
-  const ctx    = canvas.getContext('2d');
-  let particles = [];
-  let W, H;
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  function makeParticle() {
-    const theme = currentTheme;
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: 1 + Math.random() * 2.5,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: theme === 'rainy' ? 1.2 + Math.random() * 1.5 : (Math.random() - 0.5) * 0.4,
-      alpha: 0.15 + Math.random() * 0.35,
-      theme
-    };
-  }
-
-  function particleColor(theme) {
-    switch (theme) {
-      case 'hot':   return `rgba(249,115,22,`;
-      case 'cold':  return `rgba(96,192,255,`;
-      case 'rainy': return `rgba(200,230,255,`;
-      default:      return `rgba(100,160,255,`;
+    // ============================================================
+    //  TAB SWITCHING
+    // ============================================================
+    function switchTab(tab) {
+      ['manual', 'csv'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+        document.getElementById(`panel-${t}`).classList.toggle('active', t === tab);
+      });
     }
-  }
 
-  for (let i = 0; i < 80; i++) particles.push(makeParticle());
+    // ============================================================
+    //  MANUAL ENTRY STATE
+    // ============================================================
+    let manualEntries = []; // mutable staging list (converted to frozen on analyze)
 
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach((p, i) => {
-      ctx.beginPath();
-      const color = particleColor(p.theme);
-      if (currentTheme === 'rainy') {
-        // draw raindrop shape
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.strokeStyle = `${color}${p.alpha})`;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, 10 + p.r * 3);
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `${color}${p.alpha})`;
-        ctx.fill();
+    function addEntry() {
+      const dateEl = document.getElementById('entry-date');
+      const tempEl = document.getElementById('entry-temp');
+      const humEl = document.getElementById('entry-humidity');
+      const precipEl = document.getElementById('entry-precip');
+
+      const date = dateEl.value.trim();
+      const temp = parseFloat(tempEl.value);
+      const hum = parseFloat(humEl.value);
+      const precip = parseFloat(precipEl.value);
+
+      // Validate
+      let errors = [];
+      if (!date) errors.push('Date is required');
+      if (isNaN(temp)) errors.push('Temperature must be a number');
+      if (isNaN(hum)) errors.push('Humidity must be a number');
+      if (isNaN(precip)) errors.push('Precipitation must be a number');
+
+      if (errors.length) {
+        alert('⚠️ Please fix:\n• ' + errors.join('\n• '));
+        return;
       }
 
-      p.x += p.vx;
-      p.y += p.vy;
+      const entry = { date, temperature: temp, humidity: hum, precipitation: precip };
+      manualEntries.push(entry);
 
-      if (p.y > H + 20 || p.x < -10 || p.x > W + 10) {
-        particles[i] = makeParticle();
-        particles[i].theme = currentTheme;
-        particles[i].y = currentTheme === 'rainy' ? -10 : Math.random() * H;
+      // Clear inputs (keep date incremented by 1 day for convenience)
+      try {
+        const d = new Date(date + 'T00:00:00');
+        d.setDate(d.getDate() + 1);
+        dateEl.value = d.toISOString().split('T')[0];
+      } catch (e) { dateEl.value = ''; }
+      tempEl.value = '';
+      humEl.value = '';
+      precipEl.value = '';
+      tempEl.focus();
+
+      refreshEntryTable();
+    }
+
+    function refreshEntryTable() {
+      const noMsg = document.getElementById('no-entries-msg');
+      const table = document.getElementById('entry-table');
+      const tbody = document.getElementById('entry-tbody');
+      const analyzeBtn = document.getElementById('analyze-manual-btn');
+
+      if (manualEntries.length === 0) {
+        noMsg.style.display = '';
+        table.style.display = 'none';
+        analyzeBtn.disabled = true;
+        analyzeBtn.style.opacity = '0.45';
+        analyzeBtn.style.cursor = 'not-allowed';
+        return;
       }
+
+      noMsg.style.display = 'none';
+      table.style.display = '';
+      analyzeBtn.disabled = false;
+      analyzeBtn.style.opacity = '1';
+      analyzeBtn.style.cursor = 'pointer';
+
+      tbody.innerHTML = '';
+      manualEntries.forEach((r, i) => {
+        const cond = classifyDay(r);
+        tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td>${r.date}</td>
+        <td><strong style="color:var(--accent)">${r.temperature.toFixed(1)}°C</strong></td>
+        <td>${r.humidity.toFixed(1)}%</td>
+        <td>${r.precipitation.toFixed(1)} mm</td>
+        <td>${cond.emoji} ${cond.label}</td>
+        <td><button class="del-btn" onclick="deleteEntry(${i})" title="Remove row">✕</button></td>
+      </tr>`);
+      });
+    }
+
+    function deleteEntry(i) {
+      manualEntries.splice(i, 1);
+      refreshEntryTable();
+    }
+
+    function clearEntries() {
+      if (manualEntries.length && !confirm('Clear all entered rows?')) return;
+      manualEntries = [];
+      refreshEntryTable();
+    }
+
+    function analyzeManual() {
+      if (!manualEntries.length) return;
+      // Sort by date
+      const sorted = [...manualEntries].sort((a, b) => a.date.localeCompare(b.date));
+      renderDashboard(freeze(sorted));
+    }
+
+    // Allow pressing Enter on inputs to add row
+    ['entry-temp', 'entry-humidity', 'entry-precip'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') addEntry();
+      });
     });
 
-    requestAnimationFrame(draw);
-  }
+    // Default date to today
+    (function setDefaultDate() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('entry-date').value = today;
+    })();
 
-  draw();
+    // ============================================================
+    //  SAMPLE DATA BUTTON
+    // ============================================================
+    document.getElementById('load-sample-btn').addEventListener('click', () => {
+      const parsed = parseCSV(SAMPLE_CSV);
+      // Populate the manual entry table with sample rows for transparency
+      manualEntries = parsed.map(r => ({ ...r }));
+      refreshEntryTable();
+      renderDashboard(parseCSV(SAMPLE_CSV));
+    });
 
-  // Update particle theme lazily
-  setInterval(() => {
-    particles.forEach(p => { p.theme = currentTheme; });
-  }, 1500);
-})();
-</script>
+    // ============================================================
+    //  CSV FILE UPLOAD
+    // ============================================================
+    document.getElementById('csv-file-input').addEventListener('change', function () {
+      if (!this.files.length) return;
+      const reader = new FileReader();
+      reader.onload = e => renderDashboard(parseCSV(e.target.result));
+      reader.readAsText(this.files[0]);
+    });
+
+    // Drag & drop on upload zone
+    const zone = document.getElementById('upload-zone');
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragging'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragging');
+      const file = e.dataTransfer.files[0];
+      if (file) { const r = new FileReader(); r.onload = ev => renderDashboard(parseCSV(ev.target.result)); r.readAsText(file); }
+    });
+
+    // ============================================================
+    //  ANIMATED PARTICLE CANVAS
+    // ============================================================
+    (function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let W, H;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      function makeParticle() {
+        const theme = currentTheme;
+        const isCold = theme === 'cold';
+        const isRainy = theme === 'rainy';
+        return {
+          x: Math.random() * W,
+          y: (isCold || isRainy) ? -20 - Math.random() * H : Math.random() * H,
+          r: isCold ? 4 + Math.random() * 5 : 1 + Math.random() * 2.5,
+          vx: (Math.random() - 0.5) * (isCold ? 0.45 : 0.4),
+          vy: isRainy ? 1.2 + Math.random() * 1.5 : isCold ? 0.35 + Math.random() * 0.6 : (Math.random() - 0.5) * 0.4,
+          angle: Math.random() * Math.PI * 2,
+          spin: (Math.random() - 0.5) * 0.015,
+          alpha: isCold ? 0.5 + Math.random() * 0.35 : 0.15 + Math.random() * 0.35,
+          theme
+        };
+      }
+
+      function particleColor(theme) {
+        switch (theme) {
+          case 'hot': return `rgba(249,115,22,`;
+          case 'cold': return `rgba(96,192,255,`;
+          case 'rainy': return `rgba(200,230,255,`;
+          default: return `rgba(100,160,255,`;
+        }
+      }
+
+      for (let i = 0; i < 80; i++) particles.push(makeParticle());
+
+      // Draw a six-arm snowflake crystal
+      function drawSnowflake(x, y, r, angle, alpha) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.strokeStyle = `rgba(200,240,255,${alpha})`;
+        ctx.lineWidth = 1.1;
+        for (let arm = 0; arm < 6; arm++) {
+          ctx.save();
+          ctx.rotate((arm * Math.PI) / 3);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(0, -r);
+          ctx.stroke();
+          // two side branches at 50% of arm length
+          [-1, 1].forEach(side => {
+            ctx.save();
+            ctx.translate(0, -r * 0.5);
+            ctx.rotate(side * Math.PI / 3.5);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -r * 0.4);
+            ctx.stroke();
+            ctx.restore();
+          });
+          ctx.restore();
+        }
+        // tiny center dot
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.14, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(220,245,255,${alpha})`;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        particles.forEach((p, i) => {
+          const color = particleColor(p.theme);
+
+          if (currentTheme === 'cold') {
+            p.angle = (p.angle || 0) + (p.spin || 0.01);
+            drawSnowflake(p.x, p.y, p.r, p.angle, p.alpha);
+          } else if (currentTheme === 'rainy') {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.strokeStyle = `${color}${p.alpha})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, 10 + p.r * 3);
+            ctx.stroke();
+            ctx.restore();
+          } else {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `${color}${p.alpha})`;
+            ctx.fill();
+          }
+
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.y > H + 30 || p.x < -20 || p.x > W + 20) {
+            particles[i] = makeParticle();
+            particles[i].theme = currentTheme;
+            const drop = currentTheme === 'rainy' || currentTheme === 'cold';
+            particles[i].y = drop ? -20 : Math.random() * H;
+          }
+        });
+
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+
+      // Update particle theme lazily
+      setInterval(() => {
+        particles.forEach(p => { p.theme = currentTheme; });
+      }, 1500);
+    })();
+  </script>
 </body>
+
 </html>

@@ -286,9 +286,13 @@ function renderKPIs(data) {
   const hotDays = filterData(data, r => r.temperature > 30).length;
   const rainyDays = filterData(data, r => r.precipitation > 5).length;
 
+  const minT = calcMin(temps);
+  const maxT = calcMax(temps);
+
   document.getElementById('kpi-avg-temp').textContent = `${calcAvg(temps).toFixed(1)}°C`;
-  document.getElementById('kpi-max-temp').textContent = `${calcMax(temps).toFixed(1)}°C`;
-  document.getElementById('kpi-min-temp').textContent = `${calcMin(temps).toFixed(1)}°C`;
+  document.getElementById('kpi-max-temp').textContent = `${maxT.toFixed(1)}°C`;
+  document.getElementById('kpi-min-temp').textContent = `${minT.toFixed(1)}°C`;
+  document.getElementById('kpi-temp-range').textContent = `${(maxT - minT).toFixed(1)}°C`;
   document.getElementById('kpi-max-precip').textContent = `${calcMax(precs).toFixed(1)} mm`;
   document.getElementById('kpi-avg-humidity').textContent = `${calcAvg(hums).toFixed(1)}%`;
   document.getElementById('kpi-hot-days').textContent = hotDays;

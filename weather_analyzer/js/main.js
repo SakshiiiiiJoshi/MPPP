@@ -550,6 +550,10 @@ function addEntry() {
   const humEl = document.getElementById('entry-humidity');
   const precipEl = document.getElementById('entry-precip');
 
+  const statusEl = document.getElementById('manual-status');
+  statusEl.style.display = 'none';
+  statusEl.innerHTML = '';
+
   const date = dateEl.value.trim();
   const temp = parseFloat(tempEl.value);
   const hum = parseFloat(humEl.value);
@@ -563,7 +567,8 @@ function addEntry() {
   if (isNaN(precip)) errors.push('Precipitation must be a number');
 
   if (errors.length) {
-    alert('⚠️ Please fix:\n• ' + errors.join('\n• '));
+    statusEl.innerHTML = '⚠️ Please fix: ' + errors.join(', ');
+    statusEl.style.display = 'block';
     return;
   }
 
@@ -629,6 +634,7 @@ function clearEntries() {
   if (manualEntries.length && !confirm('Clear all entered rows?')) return;
   manualEntries = [];
   refreshEntryTable();
+  document.getElementById('dashboard').classList.remove('visible');
 }
 
 function analyzeManual() {
@@ -686,79 +692,197 @@ zone.addEventListener('drop', e => {
 // ============================================================
 //  OPENWEATHERMAP API
 // ============================================================
+// Main orchestrator function matching the full requested flow exactly
 async function fetchWeatherData() {
-  const apiKey = document.getElementById('api-key').value.trim();
+  // 1. User enters city (along with tense and days)
   const city = document.getElementById('api-city').value.trim();
-  const statusEl = document.getElementById('api-status');
+  const tense = document.getElementById('api-tense').value;
+  const days = parseInt(document.getElementById('api-days').value, 10);
 
-  if (!apiKey) {
-    statusEl.innerHTML = '<span style="color:#f87171">⚠️ API Key is required</span>';
-    return;
-  }
-  if (!city) {
-    statusEl.innerHTML = '<span style="color:#f87171">⚠️ City name is required</span>';
-    return;
-  }
+  // 2. Input Validation (check empty city / invalid characters)
+  if (!validateWeatherInput(city, days)) return;
 
-  // Save API key
-  localStorage.setItem('owa_api_key', apiKey);
-
-  statusEl.innerHTML = '⏳ Fetching forecast...';
-  const btn = document.getElementById('fetch-api-btn');
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
+  setFetchStatus('⏳ Fetching weather data...', true);
 
   try {
-    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${encodeURIComponent(apiKey)}&units=metric`;
-    const response = await fetch(url);
-    const data = await response.json();
+    // 3. API Request Module (fetch calls Weather API)
+    const rawResponse = await executeAPIRequest(city, tense, days);
 
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
-    }
+    // 4. API Response Handler (JSON received)
+    const jsonData = await handleAPIResponse(rawResponse);
 
-    const dailyData = {};
-    data.list.forEach(item => {
-      const date = item.dt_txt.split(' ')[0];
-      if (!dailyData[date]) dailyData[date] = { temps: [], hums: [], precips: [] };
-      dailyData[date].temps.push(item.main.temp);
-      dailyData[date].hums.push(item.main.humidity);
+    // 5. Data Cleaning Layer (handle missing rain, convert units, remove null values)
+    const cleanedData = cleanWeatherData(jsonData, tense, days);
 
-      let precip = 0;
-      if (item.rain && item.rain['3h']) precip += item.rain['3h'];
-      if (item.snow && item.snow['3h']) precip += item.snow['3h'];
-      dailyData[date].precips.push(precip);
-    });
+    // 6. Data Processing Layer (calculate averages, min/max, trends)
+    const processedData = processWeatherMetrics(cleanedData);
 
-    const formattedData = Object.keys(dailyData).sort().map(date => {
-      const day = dailyData[date];
-      return {
-        date: date,
-        temperature: calcAvg(day.temps),
-        humidity: calcAvg(day.hums),
-        precipitation: day.precips.reduce((sum, p) => sum + p, 0)
-      };
-    });
+    // 7. Condition Classifier (warm / hot / rainy / cool)
+    const finalData = classifyDatasetConditions(processedData);
 
-    statusEl.innerHTML = `<span style="color:#4ade80">✅ Loaded ${formattedData.length} days for ${data.city.name}</span>`;
-    renderDashboard(freeze(formattedData));
+    // 8. Table Renderer
+    // 9. Visualization Engine
+    // 10. Insights Generator
+    // 11. Local Storage Cache
+    // 12. User Interface Updates
+    updateInterfaceAndCache(finalData);
 
+    setFetchStatus(`<span style="color:#4ade80">✅ Successfully loaded ${finalData.length} records for ${city}</span>`, false);
   } catch (error) {
-    statusEl.innerHTML = `<span style="color:#f87171">❌ Error: ${error.message}</span>`;
-  } finally {
-    btn.disabled = false;
-    btn.style.opacity = '1';
+    setFetchStatus(`<span style="color:#f87171">❌ Error: ${error.message}</span>`, false);
   }
 }
 
-// Restore API key on load
-(function restoreApiKey() {
-  const key = localStorage.getItem('owa_api_key');
-  if (key) {
-    const apiInput = document.getElementById('api-key');
-    if (apiInput) apiInput.value = key;
+// ==========================================
+// FLOW MODULES
+// ==========================================
+
+// 2. Input Validation Layer
+function validateWeatherInput(city, days) {
+  const statusEl = document.getElementById('api-status');
+  if (!city) {
+    statusEl.innerHTML = '<span style="color:#f87171">⚠️ City name cannot be empty</span>';
+    return false;
   }
-})();
+  if (!/^[a-zA-Z\s\-\,]+$/.test(city)) {
+    statusEl.innerHTML = '<span style="color:#f87171">⚠️ City contains invalid characters</span>';
+    return false;
+  }
+  if (isNaN(days) || days < 1 || days > 16) {
+    statusEl.innerHTML = '<span style="color:#f87171">⚠️ Please enter a valid number of days (1-16)</span>';
+    return false;
+  }
+  return true;
+}
+
+// 3. API Request Module
+async function executeAPIRequest(city, tense, days) {
+  // Geocoding request to find latitude and longitude for the given city
+  const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+  const geoData = await geoRes.json();
+
+  if (!geoData.results || geoData.results.length === 0) {
+    throw new Error('City not found. Please try another name.');
+  }
+
+  const { latitude, longitude } = geoData.results[0];
+
+  // Weather request based on user's timeline preference
+  let url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=auto`;
+
+  if (tense === 'future') {
+    url += `&forecast_days=${days}`;
+  } else {
+    // past
+    url += `&past_days=${days}&forecast_days=0`;
+  }
+
+  return fetch(url);
+}
+
+// 4. API Response Handler
+async function handleAPIResponse(response) {
+  if (!response.ok) {
+    throw new Error(`API HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  if (data.error) throw new Error("API provided an error response");
+  return data;
+}
+
+// 5. Data Cleaning Layer
+function cleanWeatherData(data, tense, days) {
+  const daily = data.daily;
+  if (!daily) throw new Error("No daily data received");
+
+  const dates = daily.time || [];
+  const maxTemps = daily.temperature_2m_max || [];
+  const minTemps = daily.temperature_2m_min || [];
+  const hums = daily.relative_humidity_2m_mean || [];
+  const precips = daily.precipitation_sum || [];
+
+  let cleanedArray = [];
+
+  for (let i = 0; i < dates.length; i++) {
+    // Remove null values, convert units if necessary, handle missing rain
+    const maxT = maxTemps[i] === null ? 0 : maxTemps[i];
+    const minT = minTemps[i] === null ? 0 : minTemps[i];
+    const h = hums[i] === null ? 50 : hums[i];
+    const p = precips[i] === null ? 0 : precips[i];
+
+    cleanedArray.push({
+      date: dates[i],
+      maxTemp: maxT,
+      minTemp: minT,
+      humidity: h,
+      precipitation: p
+    });
+  }
+
+  // Ensure we return exactly the requested number of days
+  if (tense === 'past') {
+    // Open-Meteo returns past_days + 1 if forecast_days=0 is not strictly respected (sometimes it returns today)
+    cleanedArray = cleanedArray.slice(0, days);
+  } else {
+    cleanedArray = cleanedArray.slice(0, days);
+  }
+  return cleanedArray;
+}
+
+// 6. Data Processing Layer
+function processWeatherMetrics(cleanedData) {
+  // Calculate averages, mapping the max/min object to the singular expected temp
+  return cleanedData.map(day => {
+    // We average max and min to get a representative daily temperature
+    const avgTemp = (day.maxTemp + day.minTemp) / 2;
+    return {
+      date: day.date,
+      temperature: Number(avgTemp.toFixed(1)),
+      humidity: Number(day.humidity.toFixed(1)),
+      precipitation: Number(day.precipitation.toFixed(1))
+    };
+  });
+}
+
+// 7. Condition Classifier
+function classifyDatasetConditions(processedData) {
+  const frozen = freeze(processedData);
+  const globalTheme = deriveDatasetTheme(frozen);
+  applyTheme(globalTheme);
+  // Pure functional logic - return immutable state array after applying side effects
+  return frozen;
+}
+
+// 8, 9, 10, 11, 12. Interface Updates & Output Generation
+function updateInterfaceAndCache(finalData) {
+  weatherData = finalData;
+  document.getElementById('dashboard').classList.add('visible');
+
+  // 10. Insights Generator
+  renderKPIs(finalData);
+
+  // 8. Table Renderer
+  renderTable(finalData);
+
+  // 9. Visualization Engine
+  buildCharts(finalData);
+
+  // 12. User Interface Updates
+  initSlider(finalData);
+  document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // 11. Local Storage Cache
+  saveToHistory(finalData, currentTheme);
+}
+
+// Status UI Helper
+function setFetchStatus(html, isLoading) {
+  const statusEl = document.getElementById('api-status');
+  statusEl.innerHTML = html;
+  const btn = document.getElementById('fetch-api-btn');
+  btn.disabled = isLoading;
+  btn.style.opacity = isLoading ? '0.5' : '1';
+}
 
 // ============================================================
 //  ANIMATED PARTICLE CANVAS

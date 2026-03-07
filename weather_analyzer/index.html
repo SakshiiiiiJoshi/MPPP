@@ -57,19 +57,53 @@
 
       <!-- Tab bar -->
       <div class="tab-bar">
-        <button class="tab-btn active" id="tab-manual" onclick="switchTab('manual')">
+        <button class="tab-btn active" id="tab-api" onclick="switchTab('api')">
+          🌍 Search by City
+        </button>
+        <button class="tab-btn" id="tab-manual" onclick="switchTab('manual')">
           🌡️ Enter Weather Data
         </button>
         <button class="tab-btn" id="tab-csv" onclick="switchTab('csv')">
           📂 Upload CSV
         </button>
-        <button class="tab-btn" id="tab-api" onclick="switchTab('api')">
-          🌍 Fetch from API
-        </button>
+      </div>
+
+      <!-- === API FETCH TAB === -->
+      <div class="tab-panel active" id="panel-api">
+        <div style="max-width:500px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+          <div class="field-group">
+            <label>🏙️ City Name</label>
+            <input type="text" id="api-city" placeholder="e.g. London, Tokyo, Mumbai" />
+          </div>
+          <div style="display:flex; gap:16px;">
+            <div class="field-group" style="flex:1;">
+              <label>⏳ Timeline</label>
+              <select id="api-tense"
+                style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.15); color:inherit; font-family:inherit; outline:none;">
+                <option value="future" style="color:#000">🔮 Forecast (Future)</option>
+                <option value="past" style="color:#000">🕰️ Historical (Past)</option>
+              </select>
+            </div>
+            <div class="field-group" style="flex:1;">
+              <label>📅 Number of Days</label>
+              <input type="number" id="api-days" value="5" min="1" max="16" placeholder="Days..." />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="fetch-api-btn" onclick="fetchWeatherData()"
+            style="justify-content: center; padding: 12px; margin-top: 8px;">
+            ☁️ Fetch Weather Data
+          </button>
+          <div id="api-status"
+            style="font-size: 0.85rem; text-align: center; color: var(--text-muted); min-height: 20px;"></div>
+          <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:-8px;">
+            Uses the free <a href="https://open-meteo.com/" target="_blank"
+              style="color:var(--accent);text-decoration:none;">Open-Meteo Geocoding & Weather API</a>
+          </div>
+        </div>
       </div>
 
       <!-- === MANUAL ENTRY TAB === -->
-      <div class="tab-panel active" id="panel-manual">
+      <div class="tab-panel" id="panel-manual">
 
         <div class="entry-form">
           <div class="field-group">
@@ -97,8 +131,11 @@
               <span class="unit">mm</span>
             </div>
           </div>
-          <div class="field-group" style="justify-content:flex-end;">
-            <button class="btn btn-primary" id="add-entry-btn" onclick="addEntry()">
+          <div class="field-group" style="justify-content:flex-end; flex-wrap: wrap;">
+            <div id="manual-status"
+              style="width:100%; text-align:right; font-size:0.85rem; color:#f87171; margin-bottom:8px; display:none;">
+            </div>
+            <button class="btn btn-primary" id="add-entry-btn" onclick="addEntry()" type="button">
               ➕ Add Row
             </button>
           </div>
@@ -132,7 +169,7 @@
             style="background: var(--glass-bg); color: var(--accent); border: 1px solid var(--glass-border); box-shadow: none;">
             🗂️ Load Sample Data
           </button>
-          <button class="btn btn-danger" onclick="clearEntries()" title="Clear all rows">
+          <button class="btn btn-danger" onclick="clearEntries()" title="Clear all rows" type="button">
             🗑️ Clear All
           </button>
         </div>
@@ -151,30 +188,6 @@
             </button>
           </div>
           <input type="file" id="csv-file-input" accept=".csv" />
-        </div>
-      </div>
-
-      <!-- === API FETCH TAB === -->
-      <div class="tab-panel" id="panel-api">
-        <div style="max-width:500px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
-          <div class="field-group">
-            <label>🔑 OpenWeather API Key</label>
-            <input type="password" id="api-key" placeholder="Enter your 32-character API key" />
-          </div>
-          <div class="field-group">
-            <label>🏙️ City Name</label>
-            <input type="text" id="api-city" placeholder="e.g. London, Tokyo, Mumbai" />
-          </div>
-          <button class="btn btn-primary" id="fetch-api-btn" onclick="fetchWeatherData()"
-            style="justify-content: center; padding: 12px; margin-top: 8px;">
-            ☁️ Fetch 5-Day Forecast
-          </button>
-          <div id="api-status"
-            style="font-size: 0.85rem; text-align: center; color: var(--text-muted); min-height: 20px;"></div>
-          <div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:-8px;">
-            Uses the free <a href="https://openweathermap.org/forecast5" target="_blank"
-              style="color:var(--accent);text-decoration:none;">OpenWeather 5-Day Forecast API</a>
-          </div>
         </div>
       </div>
 

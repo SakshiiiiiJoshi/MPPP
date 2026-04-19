@@ -23,12 +23,12 @@
     <!-- HEADER -->
     <header>
       <div class="header-left">
-        <h1>☁️ Weather Data Analyzer</h1>
+        <h1>Weather Data Analyzer</h1>
         <p>Pure functional analysis · Immutable data · map / filter / reduce</p>
       </div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <button class="btn-history" id="history-btn" onclick="openHistory()">
-          🕑 History
+          History
           <span class="hist-count" id="hist-count">0</span>
         </button>
         <div class="theme-badge" id="theme-badge">
@@ -42,12 +42,12 @@
     <div class="history-overlay" id="history-overlay" onclick="closeHistory()"></div>
     <div class="history-drawer" id="history-drawer">
       <div class="drawer-header">
-        <h2>🕑 Analysis History</h2>
+        <h2>Analysis History</h2>
         <button class="drawer-close" onclick="closeHistory()" title="Close">✕</button>
       </div>
       <div class="drawer-body" id="drawer-body"></div>
       <div class="drawer-footer">
-        <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="clearHistory()">🗑️ Clear All
+        <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="clearHistory()">Clear All
           History</button>
       </div>
     </div>
@@ -58,13 +58,13 @@
       <!-- Tab bar -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-api" onclick="switchTab('api')">
-          🌍 Search by City
+          Search by City
         </button>
         <button class="tab-btn" id="tab-manual" onclick="switchTab('manual')">
-          🌡️ Enter Weather Data
+          Enter Weather Data
         </button>
         <button class="tab-btn" id="tab-csv" onclick="switchTab('csv')">
-          📂 Upload CSV
+          Upload CSV
         </button>
       </div>
 
@@ -72,26 +72,26 @@
       <div class="tab-panel active" id="panel-api">
         <div style="max-width:500px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
           <div class="field-group">
-            <label>🏙️ City Name</label>
+            <label>City Name</label>
             <input type="text" id="api-city" placeholder="e.g. London, Tokyo, Mumbai" />
           </div>
           <div style="display:flex; gap:16px;">
             <div class="field-group" style="flex:1;">
-              <label>⏳ Timeline</label>
+              <label>Timeline</label>
               <select id="api-tense"
                 style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.15); color:inherit; font-family:inherit; outline:none;">
-                <option value="future" style="color:#000">🔮 Forecast (Future)</option>
-                <option value="past" style="color:#000">🕰️ Historical (Past)</option>
+                <option value="future" style="color:#000">Forecast (Future)</option>
+                <option value="past" style="color:#000">Historical (Past)</option>
               </select>
             </div>
             <div class="field-group" style="flex:1;">
-              <label>📅 Number of Days</label>
+              <label>Number of Days</label>
               <input type="number" id="api-days" value="5" min="1" max="16" placeholder="Days..." />
             </div>
           </div>
           <button class="btn btn-primary" id="fetch-api-btn" onclick="fetchWeatherData()"
             style="justify-content: center; padding: 12px; margin-top: 8px;">
-            ☁️ Fetch Weather Data
+            Fetch Weather Data
           </button>
           <div id="api-status"
             style="font-size: 0.85rem; text-align: center; color: var(--text-muted); min-height: 20px;"></div>
@@ -107,25 +107,25 @@
 
         <div class="entry-form">
           <div class="field-group">
-            <label>📅 Date</label>
+            <label>Date</label>
             <input type="date" id="entry-date" />
           </div>
           <div class="field-group">
-            <label>🌡️ Temperature</label>
+            <label>Temperature</label>
             <div class="field-wrap">
               <input type="number" id="entry-temp" placeholder="e.g. 28.5" step="0.1" min="-60" max="60" />
               <span class="unit">°C</span>
             </div>
           </div>
           <div class="field-group">
-            <label>💧 Humidity</label>
+            <label>Humidity</label>
             <div class="field-wrap">
               <input type="number" id="entry-humidity" placeholder="e.g. 65" step="0.1" min="0" max="100" />
               <span class="unit">%</span>
             </div>
           </div>
           <div class="field-group">
-            <label>🌧️ Precipitation</label>
+            <label>Precipitation</label>
             <div class="field-wrap">
               <input type="number" id="entry-precip" placeholder="e.g. 5.2" step="0.1" min="0" />
               <span class="unit">mm</span>
@@ -136,7 +136,7 @@
               style="width:100%; text-align:right; font-size:0.85rem; color:#f87171; margin-bottom:8px; display:none;">
             </div>
             <button class="btn btn-primary" id="add-entry-btn" onclick="addEntry()" type="button">
-              ➕ Add Row
+              Add Row
             </button>
           </div>
         </div>
@@ -163,14 +163,14 @@
         <div class="entry-actions">
           <button class="btn btn-primary" id="analyze-manual-btn" onclick="analyzeManual()" disabled
             style="opacity:0.45;cursor:not-allowed;">
-            ⚡ Analyze Data
+            Analyze Data
           </button>
           <button class="btn btn-primary" id="load-sample-btn"
             style="background: var(--glass-bg); color: var(--accent); border: 1px solid var(--glass-border); box-shadow: none;">
-            🗂️ Load Sample Data
+            Load Sample Data
           </button>
           <button class="btn btn-danger" onclick="clearEntries()" title="Clear all rows" type="button">
-            🗑️ Clear All
+            Clear All
           </button>
         </div>
       </div>
@@ -184,7 +184,7 @@
             here</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="document.getElementById('csv-file-input').click()">
-              📁 Choose CSV File
+              Choose CSV File
             </button>
           </div>
           <input type="file" id="csv-file-input" accept=".csv" />
@@ -206,15 +206,15 @@
           </div>
           <div class="today-meta" id="today-meta">
             <div class="today-meta-item">
-              <span class="label">💧 Humidity</span>
+              <span class="label">Humidity</span>
               <span class="val" id="today-humidity">--</span>
             </div>
             <div class="today-meta-item">
-              <span class="label">🌧 Precipitation</span>
+              <span class="label">Precipitation</span>
               <span class="val" id="today-precip">--</span>
             </div>
             <div class="today-meta-item">
-              <span class="label">📊 Condition</span>
+              <span class="label">Condition</span>
               <span class="val" id="today-condition">--</span>
             </div>
           </div>
@@ -283,19 +283,19 @@
       <!-- CHARTS -->
       <div class="charts-grid">
         <div class="chart-card">
-          <h3>🌡️ Temperature Trend</h3>
+          <h3>Temperature Trend</h3>
           <canvas id="chart-temp"></canvas>
         </div>
         <div class="chart-card">
-          <h3>💧 Humidity & Precipitation</h3>
+          <h3>Humidity & Precipitation</h3>
           <canvas id="chart-hum-precip"></canvas>
         </div>
         <div class="chart-card">
-          <h3>📊 Temperature Distribution</h3>
+          <h3>Temperature Distribution</h3>
           <canvas id="chart-temp-dist"></canvas>
         </div>
         <div class="chart-card">
-          <h3>🌤️ Weather Condition Breakdown</h3>
+          <h3>Weather Condition Breakdown</h3>
           <canvas id="chart-conditions"></canvas>
         </div>
       </div>
@@ -303,7 +303,7 @@
       <!-- DATA TABLE -->
       <div class="table-section">
         <div class="table-header">
-          <h3>📋 All Weather Records</h3>
+          <h3>All Weather Records</h3>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <label style="font-size:0.8rem;color:var(--text-muted);">Min Temp filter:</label>
             <input type="number" id="filter-temp" placeholder="e.g. 30" style="width:110px;" />
@@ -327,8 +327,7 @@
 
     </div><!-- end .dashboard -->
 
-    <footer>Built with ❤️ using pure functional Python principles · map · filter · reduce · lambda · immutable tuples
-    </footer>
+    
   </div>
 
 

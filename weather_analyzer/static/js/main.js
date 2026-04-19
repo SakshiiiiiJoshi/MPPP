@@ -69,7 +69,7 @@ function getTempBadgeClass(t) {
 const THEME_META = {
   hot: { label: '☀️ Hot Mode', icon: '🔆', badge: '🌡️ HOT' },
   cold: { label: '❄️ Cold Mode', icon: '🧊', badge: '🧊 COLD' },
-  rainy: { label: '🌧️ Rain Mode', icon: '💧', badge: '💧 RAINY' },
+  rainy: { label: '🌧️ Rain Mode', icon: '💧', badge: 'RAINY' },
   mild: { label: '🌤️ Mild Mode', icon: '⛅', badge: '🌤️ MILD' },
 };
 
@@ -315,7 +315,7 @@ function renderTable(data) {
       <td>${r.date}</td>
       <td><span class="temp-badge ${tc}">${cond.emoji} ${r.temperature.toFixed(1)}°C</span></td>
       <td>${r.humidity.toFixed(1)}%</td>
-      <td><span class="precip-badge ${pc}">💧 ${r.precipitation.toFixed(1)} mm</span></td>
+      <td><span class="precip-badge ${pc}">${r.precipitation.toFixed(1)} mm</span></td>
       <td>${cond.label}</td>
     </tr>`;
   }).forEach(html => { tbody.insertAdjacentHTML('beforeend', html); });
@@ -334,7 +334,7 @@ function updateTodayCard(record) {
   document.getElementById('today-condition').textContent = cond.emoji;
   document.getElementById('weather-emoji').textContent = cond.emoji;
   document.getElementById('today-date-label').innerHTML =
-    `<span style="font-size:0.88rem;color:var(--text-muted);">📅 ${record.date}</span>`;
+    `<span style="font-size:0.88rem;color:var(--text-muted);">${record.date}</span>`;
 
   applyTheme(cond.theme);
 }
@@ -443,7 +443,7 @@ function renderHistoryList() {
   body.innerHTML = '';
 
   if (!list.length) {
-    body.innerHTML = `<div class="history-empty"><span class="he-icon">📭</span>No history yet.<br>Analyze some data to see entries here.</div>`;
+    body.innerHTML = `<div class="history-empty"><span class="he-icon"></span>No history yet.<br>Analyze some data to see entries here.</div>`;
     return;
   }
 
@@ -455,7 +455,7 @@ function renderHistoryList() {
     card.className = 'history-card';
     card.innerHTML = `
           <div class="hc-top">
-            <span class="hc-time">📅 ${when}</span>
+            <span class="hc-time">${when}</span>
             <span class="hc-theme-badge">${icon} ${entry.theme.toUpperCase()}</span>
           </div>
           <div class="hc-stats">
@@ -464,9 +464,9 @@ function renderHistoryList() {
             <div class="hc-stat"><span class="s-label">Max</span><span class="s-val">${entry.maxTemp}°C</span></div>
             <div class="hc-stat"><span class="s-label">Min</span><span class="s-val">${entry.minTemp}°C</span></div>
           </div>
-          ${entry.dateFrom ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">📆 ${entry.dateFrom} → ${entry.dateTo}</div>` : ''}
+          ${entry.dateFrom ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">${entry.dateFrom} → ${entry.dateTo}</div>` : ''}
           <div class="hc-actions">
-            <button class="btn-restore" onclick="restoreSession(${idx})">⚡ Restore</button>
+            <button class="btn-restore" onclick="restoreSession(${idx})">Restore</button>
             <button class="btn-del-entry" onclick="deleteHistoryEntry(${idx})">✕</button>
           </div>`;
     body.appendChild(card);
@@ -571,7 +571,7 @@ function addEntry() {
   if (isNaN(precip)) errors.push('Precipitation must be a number');
 
   if (errors.length) {
-    statusEl.innerHTML = '⚠️ Please fix: ' + errors.join(', ');
+    statusEl.innerHTML = 'Please fix: ' + errors.join(', ');
     statusEl.style.display = 'block';
     return;
   }
@@ -706,7 +706,7 @@ async function fetchWeatherData() {
   // 2. Input Validation (check empty city / invalid characters)
   if (!validateWeatherInput(city, days)) return;
 
-  setFetchStatus('⏳ Fetching weather data...', true);
+  setFetchStatus('Fetching weather data...', true);
 
   try {
     // 3. API Request Module (fetch calls Weather API)
@@ -731,9 +731,9 @@ async function fetchWeatherData() {
     // 12. User Interface Updates
     updateInterfaceAndCache(finalData);
 
-    setFetchStatus(`<span style="color:#4ade80">✅ Successfully loaded ${finalData.length} records for ${city}</span>`, false);
+    setFetchStatus(`<span style="color:#4ade80">Successfully loaded ${finalData.length} records for ${city}</span>`, false);
   } catch (error) {
-    setFetchStatus(`<span style="color:#f87171">❌ Error: ${error.message}</span>`, false);
+    setFetchStatus(`<span style="color:#f87171">Error: ${error.message}</span>`, false);
   }
 }
 

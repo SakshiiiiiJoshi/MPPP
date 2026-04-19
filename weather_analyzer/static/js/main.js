@@ -86,6 +86,19 @@ function applyTheme(theme) {
     `<span class="badge-icon">${meta.icon}</span><span id="theme-label">${meta.label}</span>`;
 
   updateChartColors();
+
+  // ZEN MODE: Switch audio track dynamically!
+  if (typeof zenModeEnabled !== 'undefined' && zenModeEnabled && typeof ytPlayer !== 'undefined' && ytPlayer.loadVideoById) {
+    const ZEN_TRACKS_INT = { 
+      hot: { id: 'lE6RYpe9IT0', start: 25 },    // Summer beat, skips intro
+      cold: { id: '4K5O_yO_bI8', start: 10 }, 
+      rainy: { id: 'mPZkdNFkNps', start: 5 }, 
+      mild: { id: '4xDzrDKgd1U', start: 15 } 
+    };
+    const tObj = ZEN_TRACKS_INT[theme] || ZEN_TRACKS_INT['mild'];
+    ytPlayer.loadVideoById({ videoId: tObj.id, startSeconds: tObj.start });
+    setTimeout(() => ytPlayer.playVideo(), 500); // Force play immediately after buffering load
+  }
 }
 
 // Determine overall theme from entire dataset
@@ -889,12 +902,13 @@ function setFetchStatus(html, isLoading) {
 }
 
 // ============================================================
-//  ANIMATED PARTICLE CANVAS
+//  REALISTIC WEATHER PHYSICS ENGINE
 // ============================================================
 (function initParticles() {
   const canvas = document.getElementById('particles-canvas');
   const ctx = canvas.getContext('2d');
   let particles = [];
+  let splashes = [];
   let W, H;
 
   function resize() {
@@ -905,111 +919,178 @@ function setFetchStatus(html, isLoading) {
   window.addEventListener('resize', resize);
 
   function makeParticle() {
-    const theme = currentTheme;
-    const isCold = theme === 'cold';
-    const isRainy = theme === 'rainy';
+    const isCold = currentTheme === 'cold';
+    const isRainy = currentTheme === 'rainy';
     return {
       x: Math.random() * W,
-      y: (isCold || isRainy) ? -20 - Math.random() * H : Math.random() * H,
-      r: isCold ? 4 + Math.random() * 5 : 1 + Math.random() * 2.5,
-      vx: (Math.random() - 0.5) * (isCold ? 0.45 : 0.4),
-      vy: isRainy ? 1.2 + Math.random() * 1.5 : isCold ? 0.35 + Math.random() * 0.6 : (Math.random() - 0.5) * 0.4,
-      angle: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 0.015,
-      alpha: isCold ? 0.5 + Math.random() * 0.35 : 0.15 + Math.random() * 0.35,
-      theme
+      y: Math.random() * H, // spawn on screen so it doesn't take 5 seconds to fall
+      r: isCold ? 2 + Math.random() * 3 : 0.8 + Math.random() * 1.5, // size
+      l: isRainy ? 15 + Math.random() * 20 : 0, // length of rain drop
+      vx: isRainy ? -1.5 + Math.random() * 0.5 : (Math.random() - 0.5) * 0.5, // wind shear
+      vy: isRainy ? 20 + Math.random() * 15 : 0.5 + Math.random() * 1.2, // gravity
+      alpha: isCold ? 0.3 + Math.random() * 0.5 : 0.3 + Math.random() * 0.5,
+      oscillationSpeed: Math.random() * 0.002,
+      oscillationOffset: Math.random() * Math.PI * 2
     };
   }
 
-  function particleColor(theme) {
-    switch (theme) {
-      case 'hot': return `rgba(249, 115, 22, `;
-      case 'cold': return `rgba(96, 192, 255, `;
-      case 'rainy': return `rgba(200, 230, 255, `;
-      default: return `rgba(100, 160, 255, `;
-    }
+  function makeSplash(x, y) {
+    return {
+      x: x,
+      y: y,
+      r: 1,
+      maxR: 4 + Math.random() * 6,
+      alpha: 0.4,
+      vy: -1 - Math.random() * 2,
+      vx: (Math.random() - 0.5) * 2
+    };
   }
 
-  for (let i = 0; i < 80; i++) particles.push(makeParticle());
+  // Populate pool initially
+  for (let i = 0; i < 250; i++) particles.push(makeParticle());
 
-  // Draw a six-arm snowflake crystal
-  function drawSnowflake(x, y, r, angle, alpha) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.strokeStyle = `rgba(200, 240, 255, ${alpha})`;
-    ctx.lineWidth = 1.1;
-    for (let arm = 0; arm < 6; arm++) {
-      ctx.save();
-      ctx.rotate((arm * Math.PI) / 3);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(0, -r);
-      ctx.stroke();
-      // two side branches at 50% of arm length
-      [-1, 1].forEach(side => {
-        ctx.save();
-        ctx.translate(0, -r * 0.5);
-        ctx.rotate(side * Math.PI / 3.5);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, -r * 0.4);
-        ctx.stroke();
-        ctx.restore();
-      });
-      ctx.restore();
-    }
-    // tiny center dot
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.14, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(220, 245, 255, ${alpha})`;
-    ctx.fill();
-    ctx.restore();
-  }
+  let engineActiveTheme = currentTheme;
 
   function draw() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach((p, i) => {
-      const color = particleColor(p.theme);
+    // If the theme changed, instantly reconstruct the physics environment!
+    if (engineActiveTheme !== currentTheme) {
+      engineActiveTheme = currentTheme;
+      particles = [];
+      splashes = [];
+      for (let i = 0; i < 250; i++) particles.push(makeParticle());
+    }
 
-      if (currentTheme === 'cold') {
-        p.angle = (p.angle || 0) + (p.spin || 0.01);
-        drawSnowflake(p.x, p.y, p.r, p.angle, p.alpha);
-      } else if (currentTheme === 'rainy') {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.strokeStyle = `${color}${p.alpha})`;
-        ctx.lineWidth = 1.2;
+    ctx.clearRect(0, 0, W, H);
+
+    // Only render physics for rain and snow
+    if (currentTheme !== 'rainy' && currentTheme !== 'cold') {
+      requestAnimationFrame(draw);
+      return;
+    }
+
+    // Process Splashes
+    if (currentTheme === 'rainy') {
+      for (let i = splashes.length - 1; i >= 0; i--) {
+        const s = splashes[i];
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, 10 + p.r * 3);
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(200, 230, 255, ${s.alpha})`;
+        ctx.lineWidth = 1;
         ctx.stroke();
-        ctx.restore();
-      } else {
+
+        s.r += 0.3;
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.15; // gravity on splash
+        s.alpha -= 0.025;
+
+        if (s.alpha <= 0) splashes.splice(i, 1);
+      }
+    }
+
+    // Process Falling Particles
+    particles.forEach(p => {
+      if (currentTheme === 'rainy') {
+        // High-velocity rain streaks
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 2, p.y - p.l); // Calculate tail based on velocity vector
+        ctx.strokeStyle = `rgba(200, 230, 255, ${p.alpha})`;
+        ctx.lineWidth = p.r;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Ground collision
+        if (p.y > H) {
+          if (Math.random() > 0.5) splashes.push(makeSplash(p.x, H));
+          Object.assign(p, makeParticle());
+          p.y = -20;
+          p.x = Math.random() * W;
+        }
+      } else if (currentTheme === 'cold') {
+        // Gently drifting snow
+        const sway = Math.sin(Date.now() * p.oscillationSpeed + p.oscillationOffset) * 0.5;
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `${color}${p.alpha})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
         ctx.fill();
-      }
 
-      p.x += p.vx;
-      p.y += p.vy;
+        p.x += p.vx + sway;
+        p.y += p.vy;
 
-      if (p.y > H + 30 || p.x < -20 || p.x > W + 20) {
-        particles[i] = makeParticle();
-        particles[i].theme = currentTheme;
-        const drop = currentTheme === 'rainy' || currentTheme === 'cold';
-        particles[i].y = drop ? -20 : Math.random() * H;
+        // Loop around
+        if (p.y > H + 10) {
+          Object.assign(p, makeParticle());
+          p.y = -20;
+          p.x = Math.random() * W;
+        }
       }
     });
 
     requestAnimationFrame(draw);
   }
 
-  draw();
-
-  // Update particle theme lazily
-  setInterval(() => {
-    particles.forEach(p => { p.theme = currentTheme; });
-  }, 1500);
+  draw(); // Kick off the physics engine!
 })();
+
+// ============================================================
+//  ZEN MODE (YouTube Ambient Audio)
+// ============================================================
+let ytPlayer;
+let zenModeEnabled = true;
+
+const ZEN_TRACKS = {
+  hot: { id: 'lE6RYpe9IT0', start: 25 },    // Instantly skips the intro
+  cold: { id: '4K5O_yO_bI8', start: 10 },
+  rainy: { id: 'mPZkdNFkNps', start: 5 },
+  mild: { id: '4xDzrDKgd1U', start: 15 }
+};
+
+// Called automatically by YouTube API once ready
+window.onYouTubeIframeAPIReady = function () {
+  const tObj = ZEN_TRACKS[currentTheme] || ZEN_TRACKS['mild'];
+  ytPlayer = new YT.Player('yt-player', {
+    height: '240',
+    width: '320',
+    playerVars: { 'autoplay': 1, 'controls': 0, 'loop': 1, 'playlist': tObj.id },
+    events: {
+      'onReady': function (event) {
+        if (zenModeEnabled) {
+          event.target.loadVideoById({ videoId: tObj.id, startSeconds: tObj.start });
+          setTimeout(() => event.target.playVideo(), 200);
+        }
+      }
+    }
+  });
+};
+
+function toggleZenMode() {
+  const btn = document.getElementById('zen-btn');
+  const label = document.getElementById('zen-label');
+
+  if (!ytPlayer || !ytPlayer.playVideo) {
+    alert("Audio engine is still loading or blocked by your browser. Please wait a second!");
+    return;
+  }
+
+  zenModeEnabled = !zenModeEnabled;
+
+  if (zenModeEnabled) {
+    btn.classList.add('active');
+    label.textContent = 'Zen: ON';
+
+    // Play track based on current theme!
+    const tObj = ZEN_TRACKS[currentTheme] || ZEN_TRACKS['mild'];
+    ytPlayer.loadVideoById({ videoId: tObj.id, startSeconds: tObj.start });
+    setTimeout(() => ytPlayer.playVideo(), 200); // Trigger play safely
+  } else {
+    btn.classList.remove('active');
+    label.textContent = 'Zen: OFF';
+    ytPlayer.pauseVideo();
+  }
+}
+

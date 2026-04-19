@@ -2,15 +2,16 @@
        CSS VARIABLES — Theme Tokens
     ======================================== */
     :root {
-      --bg-start: #0a0e1a;
-      --bg-end: #111827;
-      --accent: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.35);
-      --glass-bg: rgba(255, 255, 255, 0.06);
-      --glass-border: rgba(255, 255, 255, 0.12);
-      --text-primary: #f0f6ff;
-      --text-muted: rgba(240, 246, 255, 0.55);
-      --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --bg-start: #0a0806;
+      --bg-end: #1a1412;
+      --accent: #f59e0b;
+      --accent-secondary: #fcd34d;
+      --accent-glow: rgba(245, 158, 11, 0.45);
+      --glass-bg: rgba(10, 5, 0, 0.55);
+      --glass-border: rgba(255, 230, 200, 0.1);
+      --text-primary: #fffbeb;
+      --text-muted: #d6d3d1;
+      --card-shadow: 0 24px 50px rgba(0, 0, 0, 0.7);
       --transition: 0.75s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -61,13 +62,98 @@
       padding: 0;
     }
 
+    /* Custom Cinematic Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 0px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 10px;
+      border: 2px solid rgba(0, 0, 0, 0.8);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-secondary);
+    }
+
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      background-image: url('../img/bg_mild.png');
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: var(--bg-start);
       min-height: 100vh;
       color: var(--text-primary);
-      transition: background var(--transition), color var(--transition);
+      transition: background-image 0.8s ease-in-out, color var(--transition);
       overflow-x: hidden;
+      position: relative;
+    }
+
+    body.theme-hot {
+      background-image: url('../img/bg_hot.png');
+    }
+
+    body.theme-cold {
+      background-image: url('../img/bg_cold.png');
+    }
+
+    body.theme-rainy {
+      background-image: url('../img/bg_rainy.png');
+    }
+
+    /* The golden glow orb matches best with mild/hot, but we can keep it dynamic with themes or subtle enough to leave it everywhere */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1200px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.12) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Cinematic Typography Styling */
+    .parallax-text {
+      position: fixed;
+      z-index: 0;
+      color: rgba(255, 240, 220, 0.06);
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      pointer-events: none;
+      user-select: none;
+      text-transform: uppercase;
+    }
+
+    .parallax-text-1 {
+      top: 50px;
+      left: 20px;
+      font-size: clamp(3rem, 6vw, 5rem);
+    }
+
+    .parallax-text-2 {
+      top: 25%;
+      left: 20%;
+      font-size: clamp(2rem, 4vw, 3rem);
+    }
+
+    .parallax-text-3 {
+      bottom: 100px;
+      left: 50px;
+      font-size: clamp(2.5rem, 5vw, 4rem);
     }
 
     /* ========================================
@@ -139,6 +225,35 @@
 
     .theme-badge .badge-icon {
       font-size: 1.2rem;
+    }
+
+    /* Zen Button Custom Styling */
+    .zen-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 40px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .zen-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .zen-btn.active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.05) 100%);
+      border-color: var(--accent);
+      box-shadow: 0 0 16px var(--accent-glow);
+      color: #fffbeb;
     }
 
     /* ========================================
@@ -214,29 +329,31 @@
     }
 
     .field-group label {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
     }
 
     .field-group input {
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 12px;
       border: 1px solid var(--glass-border);
-      background: rgba(255, 255, 255, 0.07);
+      background: rgba(0, 0, 0, 0.2);
       color: var(--text-primary);
       font-family: 'Inter', sans-serif;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       outline: none;
-      transition: border-color 0.25s, box-shadow 0.25s;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
       width: 100%;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .field-group input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25);
     }
 
     /* Degree indicator suffix */
@@ -275,9 +392,10 @@
     }
 
     .entry-preview thead tr {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(10, 5, 0, 0.95);
       position: sticky;
       top: 0;
+      z-index: 2;
     }
 
     .entry-preview th {
@@ -389,14 +507,16 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 60%, white) 100%);
-      color: #0a0e1a;
-      box-shadow: 0 4px 16px var(--accent-glow);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
 
     .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 24px var(--accent-glow);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px var(--accent-glow);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 85%, white) 0%, color-mix(in srgb, var(--accent-secondary) 85%, white) 100%);
     }
 
     .btn-danger {

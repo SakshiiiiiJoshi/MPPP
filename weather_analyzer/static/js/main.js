@@ -73,13 +73,28 @@ const THEME_META = {
   mild: { label: '🌤️ Mild Mode', icon: '⛅', badge: '🌤️ MILD' },
 };
 
-let currentTheme = 'mild';
+const ZEN_AUDIO_SOURCES = {
+  'heavy rain': '/static/audio/rain.mp3',
+  'rainy': '/static/audio/rain.mp3',
+  'drizzle': '/static/audio/rain.mp3',
+  'scorching': '/static/audio/wind.mp3',
+  'hot': '/static/audio/wind.mp3',
+  'warm': '/static/audio/mild.mp3',
+  'mild': '/static/audio/mild.mp3',
+  'cold': '/static/audio/wind.mp3',
+  'freezing': '/static/audio/wind.mp3'
+};
 
-function applyTheme(theme) {
-  if (theme === currentTheme && document.body.classList.contains(`theme-${theme}`)) return;
+let currentTheme = 'mild';
+let currentSpecificCondition = 'mild';
+
+function applyTheme(theme, specificCondition = null) {
+  if (theme === currentTheme && document.body.classList.contains(`theme-${theme}`) && (!specificCondition || specificCondition.toLowerCase() === currentSpecificCondition)) return;
   document.body.classList.remove('theme-hot', 'theme-cold', 'theme-rainy');
   if (theme !== 'mild') document.body.classList.add(`theme-${theme}`);
+
   currentTheme = theme;
+  currentSpecificCondition = specificCondition ? specificCondition.toLowerCase() : theme;
 
   const meta = THEME_META[theme] || THEME_META.mild;
   document.getElementById('theme-badge').innerHTML =
@@ -88,17 +103,83 @@ function applyTheme(theme) {
   updateChartColors();
 
   // ZEN MODE: Switch audio track dynamically!
-  if (typeof zenModeEnabled !== 'undefined' && zenModeEnabled && typeof ytPlayer !== 'undefined' && ytPlayer.loadVideoById) {
-    const ZEN_TRACKS_INT = { 
-      hot: { id: 'lE6RYpe9IT0', start: 25 },    // Summer beat, skips intro
-      cold: { id: '4K5O_yO_bI8', start: 10 }, 
-      rainy: { id: 'mPZkdNFkNps', start: 5 }, 
-      mild: { id: '4xDzrDKgd1U', start: 15 } 
-    };
-    const tObj = ZEN_TRACKS_INT[theme] || ZEN_TRACKS_INT['mild'];
-    ytPlayer.loadVideoById({ videoId: tObj.id, startSeconds: tObj.start });
-    setTimeout(() => ytPlayer.playVideo(), 500); // Force play immediately after buffering load
+  if (typeof zenModeEnabled !== 'undefined' && zenModeEnabled) {
+    updateAudioTrack();
   }
+}
+
+// ============================================================
+//  ZEN MODE (Bulletproof Blob Stream Implementation)
+// ============================================================
+let audioEl = null;
+let currentAudioObjectURL = null;
+let activeTrackName = null;
+
+function updateAudioTrack() {
+  let conditionName = (currentSpecificCondition || currentTheme || 'mild').toLowerCase()
+    .replace(/[^\w\s]/gi, '') // safe parse
+    .replace(/\bmode\b/g, '')
+    .trim();
+
+  const localSrc = ZEN_AUDIO_SOURCES[conditionName]
+    || ZEN_AUDIO_SOURCES[currentTheme]
+    || ZEN_AUDIO_SOURCES['mild'];
+
+  // If we are already on this track, just resume play
+  if (activeTrackName === localSrc) {
+    if (zenModeEnabled && audioEl && audioEl.paused) {
+      audioEl.play().catch(e => console.warn('Resume intercepted:', e));
+    }
+    return;
+  }
+
+  activeTrackName = localSrc;
+
+  // Aggressively destroy the previous DOM element to purge AbortError state corruptions
+  let oldAudio = document.getElementById('zen-audio');
+  if (oldAudio) {
+    oldAudio.pause();
+    oldAudio.removeAttribute('src');
+    oldAudio.remove();
+  }
+
+  // Rebuild raw DOM element
+  audioEl = document.createElement('audio');
+  audioEl.id = 'zen-audio';
+  document.body.appendChild(audioEl);
+
+  // Free old memory block
+  if (currentAudioObjectURL) {
+    URL.revokeObjectURL(currentAudioObjectURL);
+    currentAudioObjectURL = null;
+  }
+
+  // Direct memory loading methodology (100% bypasses all browser stream-blocking)
+  fetch(localSrc)
+    .then(response => {
+      if (!response.ok) throw new Error("Local HTTP Fetch Failed!");
+      return response.blob();
+    })
+    .then(blob => {
+      currentAudioObjectURL = URL.createObjectURL(blob);
+      audioEl.src = currentAudioObjectURL;
+      audioEl.loop = true;
+      audioEl.volume = 1.0;
+
+      audioEl.load();
+
+      if (zenModeEnabled) {
+        let playPromise = audioEl.play();
+        if (playPromise !== undefined) {
+          playPromise.then(_ => {
+            console.log("Memory stream strictly engaged!");
+          }).catch(error => {
+            console.error('Final override stream prevented:', error);
+          });
+        }
+      }
+    })
+    .catch(err => console.error("Blob stream failed:", err));
 }
 
 // Determine overall theme from entire dataset
@@ -335,6 +416,52 @@ function renderTable(data) {
 }
 
 // ============================================================
+//  TIMELINE (Hourly)
+// ============================================================
+function renderHourlyTimeline(hours, datelineStr) {
+  const strip = document.getElementById('timeline-strip');
+  if (!strip) return;
+  strip.innerHTML = '';
+
+  if (!hours || hours.length === 0) {
+    strip.innerHTML = '<div class="no-entries">No hourly data available for this day.</div>';
+    return;
+  }
+
+  hours.forEach((hr, idx) => {
+    const cond = classifyDay({ temperature: hr.temperature, precipitation: hr.precipitation });
+
+    const pill = document.createElement('div');
+    pill.className = `timeline-pill`;
+    pill.innerHTML = `
+      <span class="pill-day">${hr.time}</span>
+      <span class="pill-icon">${cond.emoji}</span>
+      <span class="pill-temp">${hr.temperature.toFixed(0)}°</span>
+    `;
+
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.timeline-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      pill.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+
+      // Update the main card with this specific hour's data!
+      document.getElementById('today-temp-val').innerHTML = `${hr.temperature.toFixed(1)}<sup>°C</sup>`;
+      document.getElementById('today-desc').textContent = cond.label;
+      document.getElementById('today-humidity').textContent = `${hr.humidity.toFixed(1)}%`;
+      document.getElementById('today-precip').textContent = `${hr.precipitation.toFixed(1)} mm`;
+      document.getElementById('today-condition').textContent = cond.emoji;
+      document.getElementById('weather-emoji').textContent = cond.emoji;
+
+      document.getElementById('card-dateline').textContent = `${datelineStr} — ${hr.time}`;
+
+      applyTheme(cond.theme, cond.label);
+    });
+
+    strip.appendChild(pill);
+  });
+}
+
+// ============================================================
 //  SLIDER — Today Card
 // ============================================================
 function updateTodayCard(record) {
@@ -346,10 +473,20 @@ function updateTodayCard(record) {
   document.getElementById('today-precip').textContent = `${record.precipitation.toFixed(1)} mm`;
   document.getElementById('today-condition').textContent = cond.emoji;
   document.getElementById('weather-emoji').textContent = cond.emoji;
-  document.getElementById('today-date-label').innerHTML =
-    `<span style="font-size:0.88rem;color:var(--text-muted);">${record.date}</span>`;
 
-  applyTheme(cond.theme);
+  let datelineStr = record.date;
+  try {
+    const d = new Date(record.date);
+    // e.g. "Monday, 21 Apr 2026"
+    const formatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+    if (formatted !== 'Invalid Date') datelineStr = formatted;
+  } catch (e) { }
+  document.getElementById('card-dateline').textContent = datelineStr;
+
+  applyTheme(cond.theme, cond.label);
+
+  // Render the hourly timeline for this selected day
+  renderHourlyTimeline(record.hours, datelineStr);
 }
 
 function initSlider(data) {
@@ -785,7 +922,7 @@ async function executeAPIRequest(city, tense, days) {
   const { latitude, longitude } = geoData.results[0];
 
   // Weather request based on user's timeline preference
-  let url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&timezone=auto`;
+  let url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean&hourly=temperature_2m,relative_humidity_2m,precipitation&timezone=auto`;
 
   if (tense === 'future') {
     url += `&forecast_days=${days}`;
@@ -818,6 +955,24 @@ function cleanWeatherData(data, tense, days) {
   const hums = daily.relative_humidity_2m_mean || [];
   const precips = daily.precipitation_sum || [];
 
+  const hourly = data.hourly || null;
+  let hoursByDay = {};
+
+  if (hourly && hourly.time) {
+    for (let i = 0; i < hourly.time.length; i++) {
+      const fullTime = hourly.time[i];
+      const [datePart, timePart] = fullTime.split('T');
+      if (!hoursByDay[datePart]) hoursByDay[datePart] = [];
+
+      hoursByDay[datePart].push({
+        time: timePart,
+        temperature: hourly.temperature_2m[i] === null ? 0 : hourly.temperature_2m[i],
+        humidity: hourly.relative_humidity_2m[i] === null ? 50 : hourly.relative_humidity_2m[i],
+        precipitation: hourly.precipitation[i] === null ? 0 : hourly.precipitation[i]
+      });
+    }
+  }
+
   let cleanedArray = [];
 
   for (let i = 0; i < dates.length; i++) {
@@ -832,7 +987,8 @@ function cleanWeatherData(data, tense, days) {
       maxTemp: maxT,
       minTemp: minT,
       humidity: h,
-      precipitation: p
+      precipitation: p,
+      hours: hoursByDay[dates[i]] || null
     });
   }
 
@@ -856,7 +1012,8 @@ function processWeatherMetrics(cleanedData) {
       date: day.date,
       temperature: Number(avgTemp.toFixed(1)),
       humidity: Number(day.humidity.toFixed(1)),
-      precipitation: Number(day.precipitation.toFixed(1))
+      precipitation: Number(day.precipitation.toFixed(1)),
+      hours: day.hours || null
     };
   });
 }
@@ -1037,44 +1194,14 @@ function setFetchStatus(html, isLoading) {
   draw(); // Kick off the physics engine!
 })();
 
-// ============================================================
-//  ZEN MODE (YouTube Ambient Audio)
-// ============================================================
-let ytPlayer;
-let zenModeEnabled = true;
-
-const ZEN_TRACKS = {
-  hot: { id: 'lE6RYpe9IT0', start: 25 },    // Instantly skips the intro
-  cold: { id: '4K5O_yO_bI8', start: 10 },
-  rainy: { id: 'mPZkdNFkNps', start: 5 },
-  mild: { id: '4xDzrDKgd1U', start: 15 }
-};
-
-// Called automatically by YouTube API once ready
-window.onYouTubeIframeAPIReady = function () {
-  const tObj = ZEN_TRACKS[currentTheme] || ZEN_TRACKS['mild'];
-  ytPlayer = new YT.Player('yt-player', {
-    height: '240',
-    width: '320',
-    playerVars: { 'autoplay': 1, 'controls': 0, 'loop': 1, 'playlist': tObj.id },
-    events: {
-      'onReady': function (event) {
-        if (zenModeEnabled) {
-          event.target.loadVideoById({ videoId: tObj.id, startSeconds: tObj.start });
-          setTimeout(() => event.target.playVideo(), 200);
-        }
-      }
-    }
-  });
-};
+let zenModeEnabled = false;
 
 function toggleZenMode() {
   const btn = document.getElementById('zen-btn');
   const label = document.getElementById('zen-label');
 
-  if (!ytPlayer || !ytPlayer.playVideo) {
-    alert("Audio engine is still loading or blocked by your browser. Please wait a second!");
-    return;
+  if (!audioEl) {
+    audioEl = document.getElementById('zen-audio');
   }
 
   zenModeEnabled = !zenModeEnabled;
@@ -1082,15 +1209,13 @@ function toggleZenMode() {
   if (zenModeEnabled) {
     btn.classList.add('active');
     label.textContent = 'Zen: ON';
-
-    // Play track based on current theme!
-    const tObj = ZEN_TRACKS[currentTheme] || ZEN_TRACKS['mild'];
-    ytPlayer.loadVideoById({ videoId: tObj.id, startSeconds: tObj.start });
-    setTimeout(() => ytPlayer.playVideo(), 200); // Trigger play safely
+    updateAudioTrack();
   } else {
     btn.classList.remove('active');
     label.textContent = 'Zen: OFF';
-    ytPlayer.pauseVideo();
+    if (audioEl) {
+      audioEl.pause();
+    }
   }
 }
 

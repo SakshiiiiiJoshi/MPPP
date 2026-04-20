@@ -774,6 +774,81 @@
     }
 
     /* ========================================
+       TIMELINE NAV
+    ======================================== */
+    .timeline-wrapper {
+      margin-bottom: 24px;
+      animation: fadeSlideUp 0.5s ease both;
+    }
+    
+    .timeline-heading {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .timeline-strip {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 16px;
+      scroll-behavior: smooth;
+    }
+    
+    .timeline-strip::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .timeline-pill {
+      flex: 0 0 auto;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 14px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+      min-width: 95px;
+    }
+    
+    .timeline-pill:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .timeline-pill.active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.05) 100%);
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .pill-day {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    
+    .pill-icon {
+      font-size: 1.6rem;
+    }
+    
+    .pill-temp {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ========================================
        TODAY WEATHER CARD (feature)
     ======================================== */
     .today-section {
@@ -783,7 +858,7 @@
 
     .today-card {
       border-radius: 28px;
-      padding: 40px 40px;
+      padding: 32px 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -793,6 +868,18 @@
       overflow: hidden;
       box-shadow: var(--card-shadow);
       transition: all var(--transition);
+    }
+
+    .card-dateline {
+      width: 100%;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.65);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+      margin-bottom: -10px;
     }
 
     /* Theme-specific today card backgrounds */

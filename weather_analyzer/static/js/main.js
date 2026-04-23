@@ -1359,23 +1359,35 @@ function toggleZenMode() {
 // ============================================================
 //  ZEN MODE POPUP LOGIC
 // ============================================================
-let hasSuggestedZenMode = false;
 
 function suggestZenMode() {
-  if (hasSuggestedZenMode || typeof zenModeEnabled === 'undefined' || zenModeEnabled) return;
-  hasSuggestedZenMode = true;
-  
-  setTimeout(() => {
-    if (zenModeEnabled) return; 
-    const popup = document.getElementById('zen-popup');
-    if (popup) {
-      popup.style.display = 'block';
-      // Trigger reflow
-      void popup.offsetWidth;
-      popup.style.opacity = '1';
-      popup.style.transform = 'translateY(0)';
-    }
-  }, 2500); // 2.5 seconds after data load
+  if (typeof zenModeEnabled === 'undefined' || zenModeEnabled) return;
+
+  const popup = document.getElementById('zen-popup');
+  if (!popup) return;
+
+  // Cancel any previous pending timer
+  clearTimeout(window._zenPopupTimer);
+
+  // Reset popup to hidden state (no transition yet)
+  popup.style.transition = 'none';
+  popup.style.opacity = '0';
+  popup.style.transform = 'translateY(20px)';
+  popup.style.display = 'none';
+
+  window._zenPopupTimer = setTimeout(() => {
+    if (zenModeEnabled) return;
+    popup.style.display = 'block';
+    // Double rAF: ensures the browser has painted display:block
+    // before we set the transition — fixes animation on Render/Chrome
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        popup.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        popup.style.opacity = '1';
+        popup.style.transform = 'translateY(0)';
+      });
+    });
+  }, 2500);
 }
 
 window.closeZenPopup = function() {

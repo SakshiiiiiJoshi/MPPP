@@ -73,17 +73,9 @@ const THEME_META = {
   mild: { label: '🌤️ Mild Mode', icon: '⛅', badge: '🌤️ MILD' },
 };
 
-const ZEN_AUDIO_SOURCES = {
-  'heavy rain': '/static/audio/rain.mp3',
-  'rainy': '/static/audio/rain.mp3',
-  'drizzle': '/static/audio/rain.mp3',
-  'scorching': '/static/audio/wind.mp3',
-  'hot': '/static/audio/wind.mp3',
-  'warm': '/static/audio/mild.mp3',
-  'mild': '/static/audio/mild.mp3',
-  'cold': '/static/audio/wind.mp3',
-  'freezing': '/static/audio/wind.mp3'
-};
+// ============================================================
+//  THEME ENGINE & APPLICATION
+// ============================================================
 
 let currentTheme = 'mild';
 let currentSpecificCondition = 'mild';
@@ -102,84 +94,226 @@ function applyTheme(theme, specificCondition = null) {
 
   updateChartColors();
 
-  // ZEN MODE: Switch audio track dynamically!
   if (typeof zenModeEnabled !== 'undefined' && zenModeEnabled) {
     updateAudioTrack();
   }
 }
 
 // ============================================================
-//  ZEN MODE (Bulletproof Blob Stream Implementation)
+//  ZEN MODE — PROCEDURAL AUDIO ENGINE (Web Audio API)
+//  No audio files needed. All sounds generated in-browser.
 // ============================================================
-let audioEl = null;
-let currentAudioObjectURL = null;
+
+let ctx = null, masterGain = null, activeZenNodes = [];
 let activeTrackName = null;
 
+function getAudioCtx() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.7;
+    masterGain.connect(ctx.destination);
+  }
+  if (ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+
+// ── PRIMITIVE BUILDERS ──────────────────────────────────────
+
+function makeNoise(type = 'white') {
+  const c = getAudioCtx();
+  const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+  const d = buf.getChannelData(0);
+  if (type === 'white') {
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } else if (type === 'pink') {
+    let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99886*b0 + w*0.0555179; b1 = 0.99332*b1 + w*0.0750759;
+      b2 = 0.96900*b2 + w*0.1538520; b3 = 0.86650*b3 + w*0.3104856;
+      b4 = 0.55000*b4 + w*0.5329522; b5 = -0.7616*b5 - w*0.0168980;
+      d[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) / 7; b6 = w*0.115926;
+    }
+  }
+  const src = c.createBufferSource();
+  src.buffer = buf; src.loop = true; return src;
+}
+
+function makeFilter(type, freq, Q = 1) {
+  const f = getAudioCtx().createBiquadFilter();
+  f.type = type; f.frequency.value = freq; f.Q.value = Q; return f;
+}
+
+function makeGain(v) {
+  const g = getAudioCtx().createGain(); g.gain.value = v; return g;
+}
+
+function makeOsc(type, freq) {
+  const o = getAudioCtx().createOscillator();
+  o.type = type; o.frequency.value = freq; return o;
+}
+
+function makeLFO(rate, depth, target) {
+  const l = makeOsc('sine', rate);
+  const g = makeGain(depth);
+  l.connect(g); g.connect(target); l.start(); return l;
+}
+
+function makeChirps(baseFreq, interval, vol = 0.05, count = 35) {
+  const c = getAudioCtx();
+  const o = makeOsc('sine', baseFreq);
+  const g = makeGain(0);
+  o.connect(g); g.connect(masterGain); o.start();
+  const t = c.currentTime;
+  for (let i = 0; i < count; i++) {
+    g.gain.setValueAtTime(0, t + i * interval);
+    g.gain.linearRampToValueAtTime(vol, t + i * interval + 0.06);
+    g.gain.linearRampToValueAtTime(0, t + i * interval + 0.35);
+  }
+  return o;
+}
+
+// ── SOUND DEFINITIONS ───────────────────────────────────────
+
+const ZEN_SOUNDS = {
+
+  'heavy rain'() {
+    const n = makeNoise('white');
+    const lp = makeFilter('lowpass', 4000);
+    const hp = makeFilter('highpass', 400);
+    const g = makeGain(0.55);
+    n.connect(lp); lp.connect(hp); hp.connect(g); g.connect(masterGain); n.start();
+    const r = makeNoise('pink');
+    const rl = makeFilter('lowpass', 120);
+    const rg = makeGain(0.4);
+    r.connect(rl); rl.connect(rg); rg.connect(masterGain); r.start();
+    return [n, r];
+  },
+
+  'rainy'() {
+    const n = makeNoise('white');
+    const lp = makeFilter('lowpass', 3200);
+    const hp = makeFilter('highpass', 600);
+    const g = makeGain(0.35);
+    n.connect(lp); lp.connect(hp); hp.connect(g); g.connect(masterGain); n.start();
+    return [n];
+  },
+
+  'drizzle'() {
+    const n = makeNoise('white');
+    const lp = makeFilter('lowpass', 2200);
+    const hp = makeFilter('highpass', 900);
+    const g = makeGain(0.18);
+    n.connect(lp); lp.connect(hp); hp.connect(g); g.connect(masterGain); n.start();
+    return [n];
+  },
+
+  'scorching'() {
+    const n = makeNoise('pink');
+    const lp = makeFilter('lowpass', 800);
+    const g = makeGain(0.28);
+    const wl = makeLFO(0.15, 200, lp.frequency);
+    n.connect(lp); lp.connect(g); g.connect(masterGain); n.start();
+    const cic = makeOsc('sawtooth', 4800);
+    const cicG = makeGain(0);
+    const cicMod = makeOsc('sine', 18);
+    const cicModG = makeGain(0.06);
+    cicMod.connect(cicModG); cicModG.connect(cicG.gain);
+    const cicLp = makeFilter('lowpass', 5000);
+    cic.connect(cicLp); cicLp.connect(cicG); cicG.connect(masterGain);
+    cic.start(); cicMod.start();
+    return [n, wl, cic, cicMod];
+  },
+
+  'hot'() {
+    const n = makeNoise('pink');
+    const lp = makeFilter('lowpass', 600);
+    const g = makeGain(0.18);
+    makeLFO(0.08, 150, lp.frequency);
+    n.connect(lp); lp.connect(g); g.connect(masterGain); n.start();
+    return [n, makeChirps(2400, 3.1, 0.06), makeChirps(3100, 4.7, 0.05)];
+  },
+
+  'warm'() {
+    const n = makeNoise('pink');
+    const lp = makeFilter('lowpass', 400);
+    const g = makeGain(0.12);
+    makeLFO(0.05, 100, lp.frequency);
+    n.connect(lp); lp.connect(g); g.connect(masterGain); n.start();
+    return [n, makeChirps(2000, 2.3, 0.05), makeChirps(1600, 3.8, 0.04), makeChirps(2700, 5.1, 0.03)];
+  },
+
+  'mild'() {
+    const n = makeNoise('pink');
+    const lp = makeFilter('lowpass', 350);
+    const g = makeGain(0.10);
+    makeLFO(0.04, 80, lp.frequency);
+    n.connect(lp); lp.connect(g); g.connect(masterGain); n.start();
+    return [n, makeChirps(1800, 4.0, 0.04), makeChirps(2200, 6.3, 0.03)];
+  },
+
+  'cold'() {
+    const n = makeNoise('white');
+    const hp = makeFilter('highpass', 200);
+    const lp = makeFilter('lowpass', 1200);
+    const g = makeGain(0.30);
+    makeLFO(0.12, 400, lp.frequency);
+    const wg = makeGain(1);
+    makeLFO(0.08, 0.15, wg.gain);
+    n.connect(hp); hp.connect(lp); lp.connect(g); g.connect(wg); wg.connect(masterGain); n.start();
+    return [n];
+  },
+
+  'freezing'() {
+    const n = makeNoise('white');
+    const hp = makeFilter('highpass', 300);
+    const lp = makeFilter('lowpass', 2000);
+    const g = makeGain(0.42);
+    makeLFO(0.25, 800, lp.frequency);
+    const wg = makeGain(1);
+    makeLFO(0.18, 0.25, wg.gain);
+    n.connect(hp); hp.connect(lp); lp.connect(g); g.connect(wg); wg.connect(masterGain); n.start();
+    const hw = makeOsc('sawtooth', 80);
+    const hwl = makeFilter('lowpass', 160);
+    const hwg = makeGain(0);
+    makeLFO(0.15, 0.08, hwg.gain);
+    hw.connect(hwl); hwl.connect(hwg); hwg.connect(masterGain); hw.start();
+    return [n, hw];
+  }
+};
+
+// ── TRACK SWITCHER ──
+
 function updateAudioTrack() {
-  let conditionName = (currentSpecificCondition || currentTheme || 'mild').toLowerCase()
-    .replace(/[^\w\s]/gi, '') // safe parse
+  let conditionName = (currentSpecificCondition || currentTheme || 'mild')
+    .toLowerCase()
+    .replace(/[^\w\s]/gi, '')
     .replace(/\bmode\b/g, '')
     .trim();
 
-  const localSrc = ZEN_AUDIO_SOURCES[conditionName]
-    || ZEN_AUDIO_SOURCES[currentTheme]
-    || ZEN_AUDIO_SOURCES['mild'];
+  const key = ZEN_SOUNDS[conditionName]
+    ? conditionName
+    : ZEN_SOUNDS[currentTheme]
+      ? currentTheme
+      : 'mild';
 
-  // If we are already on this track, just resume play
-  if (activeTrackName === localSrc) {
-    if (zenModeEnabled && audioEl && audioEl.paused) {
-      audioEl.play().catch(e => console.warn('Resume intercepted:', e));
-    }
+  if (activeTrackName === key) {
+    if (zenModeEnabled && ctx && ctx.state === 'suspended') ctx.resume();
     return;
   }
 
-  activeTrackName = localSrc;
+  activeZenNodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch (e) {} });
+  activeZenNodes = [];
+  activeTrackName = key;
 
-  // Aggressively destroy the previous DOM element to purge AbortError state corruptions
-  let oldAudio = document.getElementById('zen-audio');
-  if (oldAudio) {
-    oldAudio.pause();
-    oldAudio.removeAttribute('src');
-    oldAudio.remove();
+  if (!zenModeEnabled) return;
+
+  try {
+    activeZenNodes = ZEN_SOUNDS[key]();
+  } catch (e) {
+    console.warn('Zen audio error:', e);
   }
-
-  // Rebuild raw DOM element
-  audioEl = document.createElement('audio');
-  audioEl.id = 'zen-audio';
-  document.body.appendChild(audioEl);
-
-  // Free old memory block
-  if (currentAudioObjectURL) {
-    URL.revokeObjectURL(currentAudioObjectURL);
-    currentAudioObjectURL = null;
-  }
-
-  // Direct memory loading methodology (100% bypasses all browser stream-blocking)
-  fetch(localSrc)
-    .then(response => {
-      if (!response.ok) throw new Error("Local HTTP Fetch Failed!");
-      return response.blob();
-    })
-    .then(blob => {
-      currentAudioObjectURL = URL.createObjectURL(blob);
-      audioEl.src = currentAudioObjectURL;
-      audioEl.loop = true;
-      audioEl.volume = 1.0;
-
-      audioEl.load();
-
-      if (zenModeEnabled) {
-        let playPromise = audioEl.play();
-        if (playPromise !== undefined) {
-          playPromise.then(_ => {
-            console.log("Memory stream strictly engaged!");
-          }).catch(error => {
-            console.error('Final override stream prevented:', error);
-          });
-        }
-      }
-    })
-    .catch(err => console.error("Blob stream failed:", err));
 }
 
 // Determine overall theme from entire dataset
@@ -1200,10 +1334,6 @@ function toggleZenMode() {
   const btn = document.getElementById('zen-btn');
   const label = document.getElementById('zen-label');
 
-  if (!audioEl) {
-    audioEl = document.getElementById('zen-audio');
-  }
-
   zenModeEnabled = !zenModeEnabled;
 
   if (zenModeEnabled) {
@@ -1213,9 +1343,10 @@ function toggleZenMode() {
   } else {
     btn.classList.remove('active');
     label.textContent = 'Zen: OFF';
-    if (audioEl) {
-      audioEl.pause();
-    }
+    activeZenNodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} });
+    activeZenNodes = [];
+    activeTrackName = null;
+    if (ctx) ctx.suspend();
   }
 }
 

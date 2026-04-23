@@ -668,6 +668,9 @@ function renderDashboard(data) {
   // Save to history
   saveToHistory(data, globalTheme);
 
+  // Suggest Zen Mode
+  suggestZenMode();
+
   // Scroll to dashboard smoothly
   document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1181,6 +1184,9 @@ function updateInterfaceAndCache(finalData) {
 
   // 11. Local Storage Cache
   saveToHistory(finalData, currentTheme);
+
+  // Suggest Zen Mode
+  suggestZenMode();
 }
 
 // Status UI Helper
@@ -1350,3 +1356,38 @@ function toggleZenMode() {
   }
 }
 
+// ============================================================
+//  ZEN MODE POPUP LOGIC
+// ============================================================
+let hasSuggestedZenMode = false;
+
+function suggestZenMode() {
+  if (hasSuggestedZenMode || typeof zenModeEnabled === 'undefined' || zenModeEnabled) return;
+  hasSuggestedZenMode = true;
+  
+  setTimeout(() => {
+    if (zenModeEnabled) return; 
+    const popup = document.getElementById('zen-popup');
+    if (popup) {
+      popup.style.display = 'block';
+      // Trigger reflow
+      void popup.offsetWidth;
+      popup.style.opacity = '1';
+      popup.style.transform = 'translateY(0)';
+    }
+  }, 2500); // 2.5 seconds after data load
+}
+
+window.closeZenPopup = function() {
+  const popup = document.getElementById('zen-popup');
+  if (popup) {
+    popup.style.opacity = '0';
+    popup.style.transform = 'translateY(20px)';
+    setTimeout(() => { popup.style.display = 'none'; }, 400);
+  }
+};
+
+window.enableZenModeFromPopup = function() {
+  window.closeZenPopup();
+  if (!zenModeEnabled) toggleZenMode();
+};

@@ -406,16 +406,7 @@ Please follow the existing **functional programming style** in both Python and J
 
 ---
 
-## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
----
 
-<div align="center">
 
-**Built with ❤️ using Python, Flask, and the Web Audio API**
-
-*Weather Analyzer — Where data meets atmosphere.*
-
-</div>
